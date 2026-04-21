@@ -1,0 +1,7 @@
+{
+  "ports": [{ "port": 4116, "label": "web", "ui": true, "healthCheck": "/" }],
+  "install": "npm install",
+  "dev": "npm run dev -- --port 4116",
+  "framework": "nuxt",
+  "startupTimeoutMs": 120000
+}
