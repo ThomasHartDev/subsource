@@ -1,0 +1,33 @@
+{
+  "name": "video-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node --import tsx scripts/render.ts",
+    "render:cheap": "pnpm render cheap",
+    "render:premium": "pnpm render premium",
+    "render:all": "pnpm render cheap all",
+    "render-veo": "node --import tsx scripts/render-veo.ts",
+    "studio": "remotion studio src/index.tsx",
+    "preview": "remotion preview src/index.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.236",
+    "@remotion/cli": "^4.0.236",
+    "@remotion/renderer": "^4.0.236",
+    "msedge-tts": "^2.0.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.236",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
