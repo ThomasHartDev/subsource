@@ -18,6 +18,13 @@ export type AppPitchAdProps = {
   // memory and passes it through inputProps so the composition doesn't need
   // to fetch JSON at render time.
   sceneTimestamps?: Array<CaptionTimestamps | null>;
+  // Persistent brand badge text. Defaults to `${appName}.com` for the legacy
+  // ads that own a real domain. Pass an honest wordmark (e.g. "InvoiceFlow")
+  // for app-idea validation ads where we don't own the .com yet.
+  brandLabel?: string;
+  // CTA scene button label. Defaults to the `${appName}.com` domain; override
+  // with a plain action label ("Get Early Access") when there's no live domain.
+  ctaLabel?: string;
 };
 
 const PALETTES = {
@@ -48,6 +55,8 @@ export const AppPitchAd: React.FC<AppPitchAdProps> = ({
   musicSrc,
   heroClipSrc,
   sceneTimestamps,
+  brandLabel,
+  ctaLabel,
 }) => {
   const palette = PALETTES[script.voiceStyle];
 
@@ -86,13 +95,14 @@ export const AppPitchAd: React.FC<AppPitchAdProps> = ({
                 palette={palette}
                 fps={fps}
                 appName={script.appName}
+                ctaLabel={ctaLabel}
                 isCta={s.kind === "cta"}
                 platformSpec={platformSpec}
                 transparentBg={Boolean(useHero) && s.kind !== "bait_clip"}
                 cutHalf={null}
                 variant={null}
               />
-              <Audio src={staticFile(s.audioSrc)} />
+              {s.audioSrc ? <Audio src={staticFile(s.audioSrc)} /> : null}
               {captionsEnabled && ts && (
                 <Captions
                   audioStartFrame={0}
@@ -163,7 +173,7 @@ export const AppPitchAd: React.FC<AppPitchAdProps> = ({
             </Sequence>
             {/* Audio mounts ONCE across the full scene — sub-cut visuals must not affect VO timing. */}
             <Sequence from={s.startFrame} durationInFrames={s.durationFrames}>
-              <Audio src={staticFile(s.audioSrc)} />
+              {s.audioSrc ? <Audio src={staticFile(s.audioSrc)} /> : null}
               {captionsEnabled && ts && (
                 <Captions
                   audioStartFrame={0}
@@ -186,6 +196,7 @@ export const AppPitchAd: React.FC<AppPitchAdProps> = ({
       <Sequence from={baitFrames}>
         <BrandMark
           appName={script.appName}
+          label={brandLabel}
           platformSpec={platformSpec}
           accentColor={palette.accent}
         />
@@ -199,12 +210,13 @@ const SceneRenderer: React.FC<{
   palette: typeof PALETTES["confident-warm"];
   fps: number;
   appName: string;
+  ctaLabel?: string;
   isCta: boolean;
   platformSpec: PlatformSpec;
   transparentBg?: boolean;
   cutHalf: 0 | 1 | null;
   variant: CutVariant | null;
-}> = ({ scene, palette, fps, appName, isCta, platformSpec, transparentBg = false, cutHalf, variant }) => {
+}> = ({ scene, palette, fps, appName, ctaLabel, isCta, platformSpec, transparentBg = false, cutHalf, variant }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
 
@@ -340,7 +352,7 @@ const SceneRenderer: React.FC<{
                 opacity: sublineEnter,
               }}
             >
-              {appName.toLowerCase().replace(/\s+/g, "")}.com
+              {ctaLabel ?? `${appName.toLowerCase().replace(/\s+/g, "")}.com`}
             </div>
           )}
         </div>

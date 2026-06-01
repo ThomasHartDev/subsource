@@ -4,19 +4,22 @@ import type { PlatformSpec } from "../types";
 
 export type BrandMarkProps = {
   appName: string;
+  // Honest badge text. Defaults to `${appName}.com` for legacy ads that own a
+  // real domain; pass a plain wordmark for app-idea ads where we don't.
+  label?: string;
   platformSpec: PlatformSpec;
   accentColor: string;
 };
 
-// Persistent small badge top-right showing the app's URL. Shows on every scene
-// except the bait_clip scene, which the parent decides — this component is
-// dumb, the parent just chooses whether to mount it.
-export const BrandMark: React.FC<BrandMarkProps> = ({ appName, platformSpec, accentColor }) => {
+// Persistent small badge top-right showing the app's wordmark or URL. Shows on
+// every scene except the bait_clip scene, which the parent decides — this
+// component is dumb, the parent just chooses whether to mount it.
+export const BrandMark: React.FC<BrandMarkProps> = ({ appName, label, platformSpec, accentColor }) => {
   const { width, height } = useVideoConfig();
   const baseDim = Math.min(width, height);
   const scale = baseDim / 1080;
 
-  const url = `${appName.toLowerCase().replace(/\s+/g, "")}.com`;
+  const url = label ?? `${appName.toLowerCase().replace(/\s+/g, "")}.com`;
   const fontSize = 18 * scale;
 
   return (
