@@ -30,6 +30,24 @@ const LINKEDITCH: AppConcept = {
   hookTemplate: "fake-satisfying",
 };
 
+// The conductor (command-center, App Validation Pipeline item #635) hands the
+// concept in over VIDEO_CONCEPT_JSON. Falls back to LINKEDITCH so existing
+// `pnpm render` calls keep working unchanged.
+function loadConcept(): AppConcept {
+  const raw = process.env.VIDEO_CONCEPT_JSON;
+  if (!raw) return LINKEDITCH;
+  try {
+    const parsed = JSON.parse(raw) as Partial<AppConcept>;
+    if (parsed && typeof parsed.name === "string" && typeof parsed.oneLiner === "string") {
+      return parsed as AppConcept;
+    }
+  } catch {
+    /* fall through to default */
+  }
+  console.warn("[render] VIDEO_CONCEPT_JSON invalid; using default LINKEDITCH concept");
+  return LINKEDITCH;
+}
+
 type Tier = "cheap" | "premium";
 
 type RenderRow = {
@@ -124,10 +142,14 @@ async function main() {
     process.exit(1);
   }
   const platforms = parsePlatforms(process.argv[3]);
-  console.log(`[render] tier=${tier} platforms=${platforms.join(",")} (${platforms.length})`);
+  const concept = loadConcept();
+  console.log(
+    `[render] tier=${tier} platforms=${platforms.join(",")} (${platforms.length}) concept=${concept.name}`,
+  );
 
-  const timestamp = Date.now();
-  const slug = LINKEDITCH.name.toLowerCase().replace(/\s+/g, "-");
+  // VIDEO_RUN_TAG lets the conductor find this run's exact output files.
+  const timestamp = process.env.VIDEO_RUN_TAG ?? Date.now();
+  const slug = concept.name.toLowerCase().replace(/\s+/g, "-");
   const runTag = `${slug}-${tier}-${timestamp}`;
   const workDir = path.join(ROOT, "out", runTag);
   await fs.mkdir(workDir, { recursive: true });
@@ -136,23 +158,23 @@ async function main() {
 
   // ---- 0. Profile builder accumulates decisions across every stage -------
   const builder = new ProfileBuilder();
-  builder.setConcept(LINKEDITCH);
+  builder.setConcept(concept);
   builder.setTargetPlatforms(platforms);
 
   // ---- 1. Generate script ONCE -------------------------------------------
   console.log(`[${tier}] generating script via claude cli...`);
-  const { script, lint } = await generateScript(LINKEDITCH, { tier, platforms });
+  const { script, lint } = await generateScript(concept, { tier, platforms });
   await fs.writeFile(path.join(workDir, "script.json"), JSON.stringify(script, null, 2));
 
   // Capture creative direction the moment we have a script + lint result.
   const ctaScene = script.scenes.find((s) => s.kind === "cta");
   const ctaText = ctaScene?.voiceover ?? ctaScene?.headline ?? "";
-  const hookTemplate = LINKEDITCH.hookTemplate ?? "fake-satisfying";
+  const hookTemplate = concept.hookTemplate ?? "fake-satisfying";
   const hookSkeleton = script.scenes[0]?.voiceover ?? script.scenes[0]?.headline ?? "";
   builder.setCreative({
     hook_template: hookTemplate,
     hook_template_skeleton: hookSkeleton.slice(0, 200),
-    humor_flavor: LINKEDITCH.humor ?? "self-aware",
+    humor_flavor: concept.humor ?? "self-aware",
     cta_framing: deriveCtaFraming(ctaText),
     cta_text: ctaText,
     cta_scarcity_tier: deriveCtaScarcityTier(ctaText),
