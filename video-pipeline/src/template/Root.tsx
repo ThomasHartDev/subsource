@@ -1,6 +1,9 @@
 import { Composition } from "remotion";
 import { AppPitchAd, type AppPitchAdProps } from "./AppPitchAd";
 import { VeoAd, type VeoAdProps } from "./VeoAd";
+import { GlassCards, type GlassCardsProps, SHOTS_FRAMES } from "./GlassCards";
+import { TalkingHead, type TalkingHeadProps } from "./TalkingHead";
+import { RateLimiting, RATE_LIMITING_DURATION, type RateLimitingProps } from "./RateLimiting";
 import { getPlatformSpec } from "../types";
 
 const FPS = 30;
@@ -59,6 +62,42 @@ const veoStubFrames = Math.max(
   veoStub.shots.reduce((a, s) => a + Math.round(s.durationSec * FPS), 0),
 );
 
+const GLASS_FPS = 30;
+
+const glassDefaults: GlassCardsProps = {
+  effects: "full",
+  music: "music.mp3",
+  cards: [
+    {
+      src: "textures/forbidden-m.png",
+      texW: 645,
+      texH: 1398,
+      position: [0.3, 0, 0.5],
+      rotationY: -0.1,
+      accent: "#f5b50a",
+      scrollPhase: 0,
+    },
+    {
+      src: "textures/portfolio-m.png",
+      texW: 645,
+      texH: 1398,
+      position: [-1.0, 2.7, -0.6],
+      rotationY: 0.22,
+      accent: "#7c8bff",
+      scrollPhase: 0.33,
+    },
+    {
+      src: "textures/honey-m.png",
+      texW: 645,
+      texH: 1398,
+      position: [-0.7, -2.7, -0.5],
+      rotationY: 0.18,
+      accent: "#f59e0b",
+      scrollPhase: 0.66,
+    },
+  ],
+};
+
 export const RemotionRoot: React.FC = () => {
   return (
     <>
@@ -81,6 +120,53 @@ export const RemotionRoot: React.FC = () => {
         width={WIDTH}
         height={HEIGHT}
         defaultProps={veoStub}
+      />
+      <Composition
+        id="GlassCards"
+        component={GlassCards}
+        durationInFrames={SHOTS_FRAMES}
+        fps={GLASS_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        defaultProps={glassDefaults}
+      />
+      <Composition
+        id="RateLimiting"
+        component={RateLimiting}
+        durationInFrames={RATE_LIMITING_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        defaultProps={
+          {
+            audioSrc: "rate-limiting.mp3",
+            readyClips: [],
+            readyMorphs: [],
+          } satisfies RateLimitingProps
+        }
+      />
+      <Composition
+        id="TalkingHead"
+        component={TalkingHead}
+        // Dimensions + duration are overridden per-render via inputProps; these
+        // are placeholders so the studio preview can mount.
+        durationInFrames={300}
+        fps={30}
+        width={WIDTH}
+        height={HEIGHT}
+        defaultProps={
+          {
+            videoSrc: "auto-edit/trimmed.mp4",
+            captions: [
+              { word: "This", start: 0, end: 0.3 },
+              { word: "is", start: 0.3, end: 0.5 },
+              { word: "auto", start: 0.5, end: 0.9 },
+              { word: "captions", start: 0.9, end: 1.5 },
+            ],
+            accent: "#FFD400",
+            maxWordsPerGroup: 3,
+          } satisfies TalkingHeadProps
+        }
       />
     </>
   );
