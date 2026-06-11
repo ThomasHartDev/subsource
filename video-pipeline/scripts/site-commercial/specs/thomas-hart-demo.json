@@ -37,18 +37,18 @@
       "imageW": 1170,
       "imageH": 36081,
       "fromY": 0,
-      "toY": 8500,
+      "toY": 5900,
       "zoom": 1.0
     },
     {
       "kind": "site-shot",
       "durationSec": 3.4,
       "transitionIn": "cut",
-      "src": "site-commercial/thomas-hart/mobile/section-2.png",
+      "src": "site-commercial/thomas-hart/mobile/fullpage.png",
       "imageW": 1170,
-      "imageH": 2532,
-      "from": { "cx": 585, "cy": 1266, "zoom": 1.05 },
-      "to": { "cx": 585, "cy": 1430, "zoom": 1.22 },
+      "imageH": 36081,
+      "from": { "cx": 585, "cy": 6900, "zoom": 1.05 },
+      "to": { "cx": 585, "cy": 6750, "zoom": 1.28 },
       "overlay": {
         "headline": "Five years shipping to production",
         "position": "lower",
