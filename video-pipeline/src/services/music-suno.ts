@@ -55,6 +55,24 @@ function extractAudio(env: GoApiEnvelope): { audioUrl?: string; durationSec?: nu
     if (directUrl) {
       return { audioUrl: directUrl, durationSec: readNumber(root, "duration") };
     }
+    // mid-2026 GoAPI shape: data.output[] with one entry per generated clip;
+    // take the longest so downstream trims instead of running dry
+    const output = (root as Record<string, unknown>).output;
+    if (Array.isArray(output) && output.length > 0) {
+      let best: { url: string; dur: number } | null = null;
+      for (const clip of output) {
+        if (!clip || typeof clip !== "object") continue;
+        const url = readString(clip, "audio_url");
+        if (!url) continue;
+        const meta = (clip as Record<string, unknown>).metadata;
+        const dur =
+          (meta && typeof meta === "object" ? readNumber(meta, "duration") : undefined) ?? 0;
+        if (!best || dur > best.dur) best = { url, dur };
+      }
+      if (best) {
+        return { audioUrl: best.url, durationSec: best.dur || undefined };
+      }
+    }
     const clips = (root as Record<string, unknown>).clips;
     if (Array.isArray(clips) && clips.length > 0) {
       const first = clips[0];

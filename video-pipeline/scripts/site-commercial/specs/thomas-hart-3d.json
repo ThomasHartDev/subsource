@@ -1,0 +1,90 @@
+{
+  "name": "thomas-hart-3d",
+  "format": "9:16",
+  "fps": 60,
+  "brand": {
+    "name": "Thomas Hart",
+    "accent": "#8E8EF7",
+    "accent2": "#3ddc97",
+    "fg": "#F2F2F4"
+  },
+  "audio": [
+    {
+      "src": "site-commercial/music/music.mp3",
+      "atSec": 0,
+      "volume": [[0, 0.0], [0.8, 0.5], [7, 0.55], [9, 0.75], [24, 0.75], [27.5, 0.45], [29.5, 0.0]]
+    },
+    { "src": "site-commercial/sfx/riser.wav", "atSec": 1.8, "volume": [[0, 0.5]] },
+    { "src": "site-commercial/sfx/boom.wav", "atSec": 4.3, "volume": [[0, 0.9]] },
+    { "src": "site-commercial/sfx/whoosh.wav", "atSec": 8.6, "volume": [[0, 0.7]] },
+    { "src": "site-commercial/sfx/whoosh.wav", "atSec": 16.4, "volume": [[0, 0.7]] },
+    { "src": "site-commercial/sfx/boom.wav", "atSec": 13.2, "volume": [[0, 0.6]] },
+    { "src": "site-commercial/sfx/shimmer.wav", "atSec": 25.6, "volume": [[0, 0.8]] }
+  ],
+  "journey": [
+    {
+      "kind": "logo-emblem",
+      "durationSec": 4.6,
+      "logoSrc": "site-commercial/brand/hartecho-mark.png",
+      "title": "Thomas Hart",
+      "subtitle": "Software engineer"
+    },
+    {
+      "kind": "site-monolith",
+      "durationSec": 4.4,
+      "src": "site-commercial/thomas-hart/mobile/hero.png",
+      "imageW": 1170,
+      "imageH": 2532,
+      "headline": "Software that handles real users and real money",
+      "sub": "thomas-hart.com"
+    },
+    {
+      "kind": "ring-tunnel",
+      "durationSec": 3.6,
+      "text": "Five years shipping to production"
+    },
+    {
+      "kind": "site-monolith",
+      "durationSec": 4.2,
+      "src": "site-commercial/thomas-hart/desktop/section-2.png",
+      "imageW": 2880,
+      "imageH": 1800,
+      "headline": "Real products, live today",
+      "sub": "Storefronts, SaaS platforms, and data tools."
+    },
+    {
+      "kind": "review-field",
+      "durationSec": 4.8,
+      "headline": "Kind words",
+      "reviews": [
+        {
+          "stars": 5,
+          "quote": "Partnering with Thomas has been one of the best decisions I've made for my business this year.",
+          "name": "Kian Schank",
+          "role": "CEO, Dandy Worldwide"
+        },
+        {
+          "stars": 5,
+          "quote": "I have never had such a positive experience working with a developer in all my life.",
+          "name": "Keegan Rembacz",
+          "role": "Marketing Manager, Aptive"
+        }
+      ]
+    },
+    {
+      "kind": "finale",
+      "durationSec": 6.4,
+      "logoSrc": "site-commercial/brand/hartecho-mark.png",
+      "domain": "thomas-hart.com",
+      "cta": "Get in touch",
+      "panelSrcs": [
+        "site-commercial/thomas-hart/mobile/hero.png",
+        "site-commercial/thomas-hart/mobile/section-2.png",
+        "site-commercial/thomas-hart/mobile/section-3.png",
+        "site-commercial/thomas-hart/desktop/section-2.png",
+        "site-commercial/thomas-hart/mobile/section-4.png",
+        "site-commercial/thomas-hart/desktop/hero.png"
+      ]
+    }
+  ]
+}

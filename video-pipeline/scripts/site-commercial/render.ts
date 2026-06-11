@@ -2,10 +2,12 @@
 // Renders a site commercial from a spec JSON.
 //
 // Usage:
-//   node --import tsx scripts/site-commercial/render.ts <spec.json> [out.mp4]
+//   node --import tsx scripts/site-commercial/render.ts <spec.json> [out.mp4] \
+//     [--scale 0.5] [--frames 0-180]
 //
-// The spec schema lives in src/site-commercial/types.ts. All asset paths in
-// the spec (captures, logos, audio) are relative to public/.
+// 2D specs (beats) render the SiteCommercial composition; 3D specs (journey)
+// render SiteCommercial3D. --scale/--frames are for fast preview passes.
+// All asset paths in specs (captures, logos, audio) are relative to public/.
 
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -14,26 +16,41 @@ import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { commercialSpecSchema } from "../../src/site-commercial/types";
+import { spec3dSchema } from "../../src/site-commercial/types3d";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..");
 
 async function main() {
-  const [specPath, outArg] = process.argv.slice(2);
+  const argv = process.argv.slice(2);
+  const positional = argv.filter((a, i) => !a.startsWith("--") && !argv[i - 1]?.startsWith("--scale") && !argv[i - 1]?.startsWith("--frames"));
+  const flag = (name: string): string | undefined => {
+    const i = argv.indexOf(`--${name}`);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const [specPath, outArg] = positional;
   if (!specPath) {
-    console.error("usage: render.ts <spec.json> [out.mp4]");
+    console.error("usage: render.ts <spec.json> [out.mp4] [--scale 0.5] [--frames 0-180]");
     process.exit(1);
   }
+  const scale = Number(flag("scale") ?? 1);
+  const framesArg = flag("frames");
+  const frameRange = framesArg
+    ? (framesArg.split("-").map(Number) as [number, number])
+    : undefined;
 
   const raw = JSON.parse(await fs.readFile(specPath, "utf-8"));
-  const spec = commercialSpecSchema.parse(raw);
+  const is3d = "journey" in raw;
+  const spec = is3d ? spec3dSchema.parse(raw) : commercialSpecSchema.parse(raw);
 
   const outPath = path.resolve(
     outArg ?? path.join(ROOT, "out", "site-commercial", `${spec.name}.mp4`),
   );
   await fs.mkdir(path.dirname(outPath), { recursive: true });
 
-  console.log(`Bundling (spec: ${spec.name}, ${spec.format} @ ${spec.fps}fps)...`);
+  console.log(
+    `Bundling (spec: ${spec.name}, ${is3d ? "3D" : "2D"}, ${spec.format} @ ${spec.fps}fps)...`,
+  );
   const bundled = await bundle({
     entryPoint: path.join(ROOT, "src", "site-commercial", "index.ts"),
     webpackOverride: (config) => config,
@@ -42,7 +59,7 @@ async function main() {
   const inputProps = { spec };
   const composition = await selectComposition({
     serveUrl: bundled,
-    id: "SiteCommercial",
+    id: is3d ? "SiteCommercial3D" : "SiteCommercial",
     inputProps,
   });
 
@@ -57,6 +74,8 @@ async function main() {
     crf: 18,
     outputLocation: outPath,
     inputProps,
+    scale,
+    frameRange,
     // shared box — don't let Chrome tabs eat all the cores
     concurrency: Math.min(4, Math.max(1, os.cpus().length - 2)),
     // headless Linux without a GPU silently botches transforms/blur on the
