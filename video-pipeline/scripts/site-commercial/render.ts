@@ -43,8 +43,11 @@ async function main() {
   const is3d = "journey" in raw;
   const spec = is3d ? spec3dSchema.parse(raw) : commercialSpecSchema.parse(raw);
 
+  // default output lives OUTSIDE the repo: out/ is gitignored and shared-tree
+  // sweeps (git clean from other agents) have eaten finished renders before
   const outPath = path.resolve(
-    outArg ?? path.join(ROOT, "out", "site-commercial", `${spec.name}.mp4`),
+    outArg ??
+      path.join(os.homedir(), ".command-center", "exports", "site-commercials", `${spec.name}.mp4`),
   );
   await fs.mkdir(path.dirname(outPath), { recursive: true });
 
