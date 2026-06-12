@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from "remotion";
 import type { PlatformSpec } from "../types";
+import { resolveSafeZone } from "./safe-zones";
 
 export type CaptionTimestamps = {
   words: string[];
@@ -80,9 +81,10 @@ export const Captions: React.FC<CaptionsProps> = ({
     extrapolateRight: "clamp",
   });
 
-  // Bottom position: above the platform's safe zone with a comfortable gap so
-  // captions don't kiss the chrome.
-  const bottomPx = platformSpec.safe_bottom_px + 80 * scale;
+  // Bottom position: above the resolved safe zone with a comfortable gap so
+  // captions don't kiss the chrome (or the canvas edge on square/landscape).
+  const safe = resolveSafeZone(platformSpec);
+  const bottomPx = safe.bottom + 80 * scale;
 
   return (
     <AbsoluteFill
@@ -92,8 +94,8 @@ export const Captions: React.FC<CaptionsProps> = ({
         alignItems: "flex-end",
         justifyContent: "center",
         paddingBottom: bottomPx,
-        paddingLeft: platformSpec.safe_left_px + 24 * scale,
-        paddingRight: platformSpec.safe_right_px + 24 * scale,
+        paddingLeft: safe.left + 24 * scale,
+        paddingRight: safe.right + 24 * scale,
       }}
     >
       <div

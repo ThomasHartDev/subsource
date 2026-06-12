@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useVideoConfig } from "remotion";
 import type { PlatformSpec } from "../types";
+import { resolveSafeZone } from "./safe-zones";
 
 export type BrandMarkProps = {
   appName: string;
@@ -18,6 +19,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ appName, label, platformSp
   const { width, height } = useVideoConfig();
   const baseDim = Math.min(width, height);
   const scale = baseDim / 1080;
+  const safe = resolveSafeZone(platformSpec);
 
   const url = label ?? `${appName.toLowerCase().replace(/\s+/g, "")}.com`;
   const fontSize = 18 * scale;
@@ -27,8 +29,8 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ appName, label, platformSp
       <div
         style={{
           position: "absolute",
-          top: platformSpec.safe_top_px + 20 * scale,
-          right: platformSpec.safe_right_px + 20 * scale,
+          top: safe.top + 20 * scale,
+          right: safe.right + 20 * scale,
           backgroundColor: "rgba(0, 0, 0, 0.45)",
           borderRadius: 999,
           padding: `${8 * scale}px ${16 * scale}px`,
