@@ -40,6 +40,19 @@ const placeholder: AppPitchAdProps = {
   platformSpec: getPlatformSpec("tiktok-feed"),
 };
 
+// Square + landscape previews reuse the same stub script; only the platform
+// spec (and with it the safe-zone family) changes.
+const squarePlaceholder: AppPitchAdProps = {
+  ...placeholder,
+  platformSpec: getPlatformSpec("meta-feed-square"),
+};
+const landscapePlaceholder: AppPitchAdProps = {
+  ...placeholder,
+  platformSpec: getPlatformSpec("youtube-instream"),
+};
+
+const adDurationFrames = Math.max(1, placeholder.scenes.reduce((a, s) => a + s.durationFrames, 0)) || 30;
+
 // Stub VeoAd defaults so the Remotion preview can load before a real render
 // produces the Veo clips on disk. The render script overrides everything via
 // inputProps at renderMedia time.
@@ -106,11 +119,33 @@ export const RemotionRoot: React.FC = () => {
         component={AppPitchAd}
         // Width/height/fps/durationInFrames are placeholders. They're overridden
         // at renderMedia call time via the per-platform composition override.
-        durationInFrames={Math.max(1, placeholder.scenes.reduce((a, s) => a + s.durationFrames, 0)) || 30}
+        durationInFrames={adDurationFrames}
         fps={FPS}
         width={WIDTH}
         height={HEIGHT}
         defaultProps={placeholder}
+      />
+      {/* Square + landscape registrations share the AppPitchAd component;
+          resolveSafeZone() swaps the margin math by aspect family. Never
+          ffmpeg-crop the portrait render to derive these — overlays land in
+          the wrong spots. render.ts picks the comp via aspectFamily(). */}
+      <Composition
+        id="AppPitchAdSquare"
+        component={AppPitchAd}
+        durationInFrames={adDurationFrames}
+        fps={FPS}
+        width={1080}
+        height={1080}
+        defaultProps={squarePlaceholder}
+      />
+      <Composition
+        id="AppPitchAdLandscape"
+        component={AppPitchAd}
+        durationInFrames={adDurationFrames}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={landscapePlaceholder}
       />
       <Composition
         id="VeoAd"

@@ -15,6 +15,7 @@ import { generateMusic as stableMusic } from "../src/services/music-stable";
 import { getAudioDuration } from "../src/services/audio-meta";
 import { ProfileBuilder, writeProfile, sha256OfFile } from "../src/services/profile";
 import platformSpecs from "../src/platform-specs.json";
+import { APP_PITCH_COMPOSITION_IDS, aspectFamily } from "../src/template/safe-zones";
 import { DEFAULT_PLATFORMS, ITERATION_PLATFORMS, getPlatformSpec, type AdScript, type AppConcept, type PlatformId, type ProfileOutputFile, type ProfileScene } from "../src/types";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -423,9 +424,12 @@ async function main() {
       sceneTimestamps,
     };
 
+    // Pick the registration that matches this platform's aspect family —
+    // square/landscape comps carry their own safe-zone math, so a 16:9 render
+    // is a real 16:9 layout, not a dimension override on the 9:16 comp.
     const composition = await selectComposition({
       serveUrl,
-      id: "AppPitchAd",
+      id: APP_PITCH_COMPOSITION_IDS[aspectFamily(spec)],
       inputProps: inputProps as unknown as Record<string, unknown>,
     });
 

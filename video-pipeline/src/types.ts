@@ -93,6 +93,9 @@ export const DEFAULT_PLATFORMS: PlatformId[] = [
   "meta-feed-square",
   "meta-feed-portrait",
   "meta-story",
+  // Landscape derivative — same script/audio fan out onto a 16:9 canvas via
+  // the AppPitchAdLandscape composition (never an ffmpeg crop of the 9:16).
+  "youtube-instream",
 ];
 
 export const ITERATION_PLATFORMS: PlatformId[] = ["tiktok-feed"];

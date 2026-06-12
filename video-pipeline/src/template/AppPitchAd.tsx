@@ -3,6 +3,7 @@ import React, { Fragment } from "react";
 import type { AdScript, PlatformSpec, Scene } from "../types";
 import { Captions, type CaptionTimestamps } from "./Captions";
 import { BrandMark } from "./BrandMark";
+import { resolveSafeZone } from "./safe-zones";
 
 export type AppPitchAdProps = {
   script: AdScript;
@@ -282,6 +283,10 @@ const SceneRenderer: React.FC<{
   const baseDim = Math.min(width, height);
   const scale = baseDim / 1080;
 
+  // Aspect-aware margins — raw platform chrome on vertical feeds, family
+  // floors on square/landscape canvases whose specs report 0 on every edge.
+  const safe = resolveSafeZone(platformSpec);
+
   const accentBarWidth = skipEntrance ? width * 0.18 : interpolate(enter, [0, 1], [0, width * 0.18]);
 
   // Sub-cut visual variation. Only applied on the second half (cutHalf === 1).
@@ -300,10 +305,10 @@ const SceneRenderer: React.FC<{
         // so the video shows through. Otherwise the parent palette bg already covers it.
         // bg-swap variant flips to the accent color for the second half.
         backgroundColor: transparentBg ? "transparent" : swappedBg,
-        paddingTop: platformSpec.safe_top_px,
-        paddingBottom: platformSpec.safe_bottom_px,
-        paddingLeft: platformSpec.safe_left_px,
-        paddingRight: platformSpec.safe_right_px,
+        paddingTop: safe.top,
+        paddingBottom: safe.bottom,
+        paddingLeft: safe.left,
+        paddingRight: safe.right,
         transform: cutTransform,
         transformOrigin: "center center",
       }}
