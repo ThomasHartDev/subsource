@@ -20,6 +20,8 @@
     "@react-three/postprocessing": "^3.0.4",
     "@remotion/bundler": "^4.0.236",
     "@remotion/cli": "^4.0.236",
+    "@remotion/google-fonts": "4.0.236",
+    "@remotion/media-parser": "4.0.236",
     "@remotion/renderer": "^4.0.236",
     "@remotion/three": "4.0.452",
     "@runwayml/sdk": "^3.21.1",
