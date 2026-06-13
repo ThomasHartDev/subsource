@@ -9,6 +9,9 @@ import {
   type CalculateMetadataFunction,
 } from "remotion";
 import React from "react";
+import { EndCard } from "./EndCard";
+import { InFrameBrandMark } from "./InFrameBrandMark";
+import { KineticCaption, LINKEDITCH_CAPTION_PHRASES } from "./KineticCaption";
 
 export type LinkeditchAdProps = {
   /** Paths relative to the public dir, e.g. "clips/shot-0.mp4" */
@@ -44,6 +47,7 @@ const videoStyle: React.CSSProperties = {
 };
 
 // Shows clip3 for its natural duration, then overlays a frozen last frame.
+// InFrameBrandMark covers Veo's botched hand-painted "LINKEDITCH.COM" sign.
 const Clip3WithFreeze: React.FC<{
   src: string;
   videoFrames: number;
@@ -58,6 +62,8 @@ const Clip3WithFreeze: React.FC<{
         <OffthreadVideo src={staticFile(src)} muted style={videoStyle} />
       </Freeze>
     </Sequence>
+    {/* Overlay the brand mark on shot 3 from the first frame. */}
+    <InFrameBrandMark />
   </AbsoluteFill>
 );
 
@@ -73,6 +79,8 @@ export const LinkeditchAd: React.FC<LinkeditchAdProps> = ({
 }) => {
   // VO must be a sibling of <Series>, not inside a <Series.Sequence>.
   // Placing it inside a sequence stops the audio at the sequence boundary.
+  const endCardStart = clip1Frames + clip2Frames + clip3Frames;
+
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       <Audio src={staticFile(voPath)} />
@@ -102,6 +110,12 @@ export const LinkeditchAd: React.FC<LinkeditchAdProps> = ({
           />
         </Series.Sequence>
       </Series>
+      {/* Kinetic captions during shots 2 + 3 (after the visual hook). */}
+      <KineticCaption phrases={LINKEDITCH_CAPTION_PHRASES} />
+      {/* EndCard starts at the freeze block — it runs on top of the frozen frame. */}
+      <Sequence from={endCardStart} durationInFrames={freezeFrames}>
+        <EndCard brandName="LinkedItch" tagline="Try free today" />
+      </Sequence>
     </AbsoluteFill>
   );
 };
