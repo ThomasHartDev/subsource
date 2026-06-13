@@ -26,6 +26,12 @@ importers:
       '@remotion/cli':
         specifier: ^4.0.236
         version: 4.0.452(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@remotion/google-fonts':
+        specifier: 4.0.236
+        version: 4.0.236(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@remotion/media-parser':
+        specifier: 4.0.236
+        version: 4.0.236
       '@remotion/renderer':
         specifier: ^4.0.236
         version: 4.0.452(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -589,8 +595,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@remotion/google-fonts@4.0.236':
+    resolution: {integrity: sha512-a4oKGS4z1e6qq5xHihZd78RHvHvokRbs/CIxwsqsUnSAkc0PUDkr+moVIawn5A9lk++QPR2Bk+lKzO1Uoe0gIQ==}
+
   '@remotion/licensing@4.0.452':
     resolution: {integrity: sha512-1Gxf0mpQ720XSGnx0tfkuNOHLh1HobuYXK4tC55Rgv9OfoMyFVnOTrPFDzU1KdULlUQ3jJ2JWvm8qmHV7/zLeA==}
+
+  '@remotion/media-parser@4.0.236':
+    resolution: {integrity: sha512-S7gMXu1BcXX/Iy9q0GYfWgwjEznoXYVXA/T1qb1Vpe4vuOAkE9NJlRGbwwu8HSjixOuwtTKdqnkbfxxIkQOSSw==}
 
   '@remotion/media-parser@4.0.452':
     resolution: {integrity: sha512-nLXrhaBn+NqsUbXZ3nfW3EC/KnB0Utx/YHqNvnV0koKr2I0e0wTUuNSt641CyASRn1jpZMz3XgEb6xBhlXHeMw==}
@@ -1475,6 +1487,12 @@ packages:
     resolution: {integrity: sha512-YTUo+Flmw4ZXiWfQKGcwwc11KnoRAYgzAE2E7mXKCjSviTKShtxBsN6YUUBB2gtaBzKzeKunxhUwNHQuRryhWA==}
     engines: {node: '>= 4'}
 
+  remotion@4.0.236:
+    resolution: {integrity: sha512-FVsnkadPuuiaPqaDgzUako+f4DCTyZQcvcu04nmjtEeHey5VyT7saFx9fcmdAEEw4JmwszdPtqPipN8JPPp2Gw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
   remotion@4.0.452:
     resolution: {integrity: sha512-6UqiiFo00meR2bOjJAEIdQU95m2XPXLjyC8V28IeJnoZ9uwnYWCa1pATXbUy/UHrYd6mmBsXWJ/OuAde2eSg/Q==}
     peerDependencies:
@@ -2193,7 +2211,16 @@ snapshots:
   '@remotion/compositor-win32-x64-msvc@4.0.452':
     optional: true
 
+  '@remotion/google-fonts@4.0.236(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
+    dependencies:
+      remotion: 4.0.236(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
   '@remotion/licensing@4.0.452': {}
+
+  '@remotion/media-parser@4.0.236': {}
 
   '@remotion/media-parser@4.0.452': {}
 
@@ -3140,6 +3167,11 @@ snapshots:
       source-map: 0.6.1
       tiny-invariant: 1.3.3
       tslib: 2.8.1
+
+  remotion@4.0.236(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
+    dependencies:
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
 
   remotion@4.0.452(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
     dependencies:

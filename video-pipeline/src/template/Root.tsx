@@ -4,6 +4,7 @@ import { VeoAd, type VeoAdProps } from "./VeoAd";
 import { GlassCards, type GlassCardsProps, SHOTS_FRAMES } from "./GlassCards";
 import { TalkingHead, type TalkingHeadProps } from "./TalkingHead";
 import { RateLimiting, RATE_LIMITING_DURATION, type RateLimitingProps } from "./RateLimiting";
+import { LinkeditchAd, calculateMetadata as linkeditchAdCalculateMetadata, type LinkeditchAdProps } from "./LinkeditchAd";
 import { getPlatformSpec } from "../types";
 
 const FPS = 30;
@@ -178,6 +179,29 @@ export const RemotionRoot: React.FC = () => {
             readyClips: [],
             readyMorphs: [],
           } satisfies RateLimitingProps
+        }
+      />
+      <Composition
+        id="LinkeditchAd"
+        component={LinkeditchAd}
+        calculateMetadata={linkeditchAdCalculateMetadata}
+        // durationInFrames is computed from props by calculateMetadata.
+        // These stubs let the studio preview mount without real clips on disk.
+        durationInFrames={180 + 180 + 180 + 45}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        defaultProps={
+          {
+            clip1Path: "clips/shot-0.mp4",
+            clip2Path: "clips/shot-1.mp4",
+            clip3Path: "clips/shot-2.mp4",
+            voPath: "audio/vo.mp3",
+            clip1Frames: 180,
+            clip2Frames: 180,
+            clip3Frames: 180,
+            freezeFrames: 45,
+          } satisfies LinkeditchAdProps
         }
       />
       <Composition
