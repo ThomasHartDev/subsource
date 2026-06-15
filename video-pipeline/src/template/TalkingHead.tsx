@@ -1,9 +1,7 @@
 import React, { useMemo } from "react";
 import {
   AbsoluteFill,
-  Audio,
   OffthreadVideo,
-  Sequence,
   interpolate,
   spring,
   staticFile,
@@ -13,12 +11,27 @@ import {
 
 export type CaptionWord = { word: string; start: number; end: number };
 
+// "vertical" = 9:16 (TikTok/Reels/Shorts): captions sit high in the Hormozi zone
+// to clear the bottom UI. "landscape" = 16:9 (YouTube/LinkedIn/X): captions sit
+// in the lower third with more horizontal room. The music bed is baked into the
+// video's audio track upstream (ffmpeg sidechain duck), so there's no Remotion
+// Audio track here — both orientations carry the same mixed audio.
+export type Orientation = "vertical" | "landscape";
+
 export type TalkingHeadProps = {
   videoSrc: string; // staticFile-relative path to the trimmed video
   captions: CaptionWord[]; // timestamps in the trimmed timeline (seconds)
-  music?: string; // optional staticFile-relative bed
   accent: string; // active-word highlight color
   maxWordsPerGroup: number;
+  orientation?: Orientation;
+};
+
+// Per-orientation caption layout. Font is a fraction of frame height so it reads
+// the same physical size in both, padding keeps it inside each platform's safe
+// zone (vertical bottom UI is taller than landscape's).
+const LAYOUT: Record<Orientation, { fontFrac: number; paddingBottom: string; paddingX: string }> = {
+  vertical: { fontFrac: 0.072, paddingBottom: "33%", paddingX: "9%" },
+  landscape: { fontFrac: 0.085, paddingBottom: "10%", paddingX: "12%" },
 };
 
 type Group = { words: CaptionWord[]; start: number; end: number };
@@ -47,13 +60,14 @@ function groupCaptions(captions: CaptionWord[], maxWords: number): Group[] {
 export const TalkingHead: React.FC<TalkingHeadProps> = ({
   videoSrc,
   captions,
-  music,
   accent,
   maxWordsPerGroup,
+  orientation = "vertical",
 }) => {
   const frame = useCurrentFrame();
   const { fps, height } = useVideoConfig();
   const t = frame / fps;
+  const layout = LAYOUT[orientation];
 
   const groups = useMemo(() => groupCaptions(captions, maxWordsPerGroup), [captions, maxWordsPerGroup]);
 
@@ -65,29 +79,24 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
     else break;
   }
 
-  const fontPx = Math.round(height * 0.072); // ~7% of frame height
+  const fontPx = Math.round(height * layout.fontFrac);
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       <OffthreadVideo src={staticFile(videoSrc)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
 
-      {active ? <CaptionGroup group={active} t={t} fontPx={fontPx} accent={accent} /> : null}
-
-      {music ? (
-        <Sequence from={0}>
-          <Audio src={staticFile(music)} volume={0.12} />
-        </Sequence>
-      ) : null}
+      {active ? <CaptionGroup group={active} t={t} fontPx={fontPx} accent={accent} layout={layout} /> : null}
     </AbsoluteFill>
   );
 };
 
-const CaptionGroup: React.FC<{ group: Group; t: number; fontPx: number; accent: string }> = ({
-  group,
-  t,
-  fontPx,
-  accent,
-}) => {
+const CaptionGroup: React.FC<{
+  group: Group;
+  t: number;
+  fontPx: number;
+  accent: string;
+  layout: { paddingBottom: string; paddingX: string };
+}> = ({ group, t, fontPx, accent, layout }) => {
   const { fps } = useVideoConfig();
   const frame = useCurrentFrame();
 
@@ -106,11 +115,12 @@ const CaptionGroup: React.FC<{ group: Group; t: number; fontPx: number; accent: 
       style={{
         justifyContent: "flex-end",
         alignItems: "center",
-        // Sit captions ~62% down (Hormozi zone): clears the username/ads up top
-        // and the comment/share/caption UI in the bottom ~25%.
-        paddingBottom: "33%",
-        paddingLeft: "9%",
-        paddingRight: "9%",
+        // Caption band is orientation-driven: vertical sits in the Hormozi zone
+        // (clears top username/ads + bottom comment/share UI), landscape sits in
+        // the lower third with wider margins.
+        paddingBottom: layout.paddingBottom,
+        paddingLeft: layout.paddingX,
+        paddingRight: layout.paddingX,
       }}
     >
       <div
