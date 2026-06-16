@@ -6,6 +6,7 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { computeEditList, DEFAULT_OPTIONS, type Word } from "./editlist";
 import { run, probeDuration, buildTrimFilter, buildMusicDuckFilter } from "./ffmpeg";
+import { analyzeOverlays, type Cue } from "./overlays";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -44,11 +45,15 @@ function parseArgs(argv: string[]) {
   // Head-aware reframe (default on): follow the face when changing aspect, so
   // the speaker doesn't have to center themselves. --no-reframe = static crop.
   const reframe = !argv.includes("--no-reframe");
-  return { input, noFiller, music, orientations, slug, reframe };
+  // Content-driven graphics (default on): analyze the dialogue and edit in
+  // stat/keyword/diagram overlays with SFX. --no-overlays disables.
+  const overlays = !argv.includes("--no-overlays");
+  const topic = flag("--topic") ?? "";
+  return { input, noFiller, music, orientations, slug, reframe, overlays, topic };
 }
 
 async function main() {
-  const { input, noFiller, music, orientations, slug, reframe } = parseArgs(process.argv);
+  const { input, noFiller, music, orientations, slug, reframe, overlays, topic } = parseArgs(process.argv);
   if (!input || orientations.length === 0) {
     console.error(
       "usage: auto-edit.ts <input-video> [--no-filler] [--music <public-rel|default>] " +
@@ -100,6 +105,20 @@ async function main() {
     ],
     "ffmpeg-assemble",
   );
+
+  // 3a. Content-driven overlays: analyze the trimmed transcript and decide where
+  //     a stat/keyword/diagram graphic helps. Cues are in the trimmed timeline
+  //     (edit.captions), so they line up with both the video and the captions.
+  let overlayCues: Cue[] = [];
+  if (overlays) {
+    console.log("[auto-edit] analyzing dialogue for graphics...");
+    try {
+      overlayCues = await analyzeOverlays(edit.captions, edit.trimmedDuration, topic);
+      console.log(`[auto-edit] ${overlayCues.length} overlay cue(s): ${overlayCues.map((c) => c.kind).join(", ") || "none"}`);
+    } catch (e) {
+      console.warn(`[auto-edit] overlay analysis failed (${(e as Error).message}); continuing without`);
+    }
+  }
 
   // 3b. Optional music bed: sidechain-duck it under the voice and remaster.
   //     Baked into the master's audio so every render carries the same mix.
@@ -184,6 +203,7 @@ async function main() {
       accent: ACCENT,
       maxWordsPerGroup: fmt.maxWords,
       orientation,
+      overlays: overlayCues,
     };
     const composition = await selectComposition({
       serveUrl,

@@ -8,6 +8,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { OverlayLayer, type Cue } from "./Overlays";
 
 export type CaptionWord = { word: string; start: number; end: number };
 
@@ -24,6 +25,7 @@ export type TalkingHeadProps = {
   accent: string; // active-word highlight color
   maxWordsPerGroup: number;
   orientation?: Orientation;
+  overlays?: Cue[]; // content-driven graphics (stat/keyword/diagram), trimmed timeline
 };
 
 // Per-orientation caption layout. Font is a fraction of frame height so it reads
@@ -69,6 +71,7 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
   accent,
   maxWordsPerGroup,
   orientation = "vertical",
+  overlays = [],
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -100,6 +103,8 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       <OffthreadVideo src={staticFile(videoSrc)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+
+      {overlays.length ? <OverlayLayer cues={overlays} orientation={orientation} /> : null}
 
       {active ? <CaptionGroup group={active} t={t} fontPx={fontPx} accent={accent} layout={layout} /> : null}
     </AbsoluteFill>
