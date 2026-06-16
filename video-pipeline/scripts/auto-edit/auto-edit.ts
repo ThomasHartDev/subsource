@@ -39,11 +39,14 @@ function parseArgs(argv: string[]) {
     .map((s) => s.trim())
     .filter((s): s is Orientation => s === "vertical" || s === "landscape");
   const slug = flag("--slug") ?? "talking-head";
-  return { input, noFiller, music, orientations, slug };
+  // Head-aware reframe (default on): follow the face when changing aspect, so
+  // the speaker doesn't have to center themselves. --no-reframe = static crop.
+  const reframe = !argv.includes("--no-reframe");
+  return { input, noFiller, music, orientations, slug, reframe };
 }
 
 async function main() {
-  const { input, noFiller, music, orientations, slug } = parseArgs(process.argv);
+  const { input, noFiller, music, orientations, slug, reframe } = parseArgs(process.argv);
   if (!input || orientations.length === 0) {
     console.error(
       "usage: auto-edit.ts <input-video> [--no-filler] [--music <public-rel|default>] " +
@@ -88,6 +91,7 @@ async function main() {
       "-y", "-i", abs,
       "-filter_complex", buildTrimFilter(edit.segments),
       "-map", "[vc]", "-map", "[aout]",
+      "-r", String(FPS),
       "-c:v", "libx264", "-preset", "medium", "-crf", "18",
       "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
       master,
@@ -119,10 +123,42 @@ async function main() {
     videoSrcAbs = mixed;
   }
 
-  // 4. Render captions over the master, once per requested orientation.
   const videoSrcRel = `auto-edit/${path.basename(videoSrcAbs)}`;
   const masterDur = await probeDuration(videoSrcAbs);
   const durationInFrames = Math.max(1, Math.round(masterDur * FPS));
+
+  // 3c. Head-aware reframe per orientation, BEFORE bundling. Remotion's bundle
+  //     snapshots public/ at bundle time, so every video the renderer reads
+  //     (incl. these reframed files) must already exist on disk first. Face-
+  //     track the master once, then reframe each orientation to target dims so
+  //     the speaker stays framed regardless of where they are in the shot.
+  const orientSrcRel: Record<Orientation, string> = { vertical: videoSrcRel, landscape: videoSrcRel };
+  if (reframe) {
+    const trackPath = path.join(work, "facetrack.json");
+    console.log("[auto-edit] face-tracking for head-aware reframe...");
+    await run("python3", [path.join(__dirname, "autoframe.py"), videoSrcAbs, trackPath], "autoframe");
+    for (const orientation of orientations) {
+      const fmt = FORMATS[orientation];
+      const reframed = path.join(AE_PUBLIC, `reframed-${orientation}-${ts}.mp4`);
+      console.log(`[auto-edit] reframing ${orientation} (head-tracked ${fmt.width}x${fmt.height})...`);
+      await run(
+        "python3",
+        [
+          path.join(__dirname, "reframe.py"),
+          "--master", videoSrcAbs,
+          "--track", trackPath,
+          "--tw", String(fmt.width),
+          "--th", String(fmt.height),
+          "--out", reframed,
+        ],
+        `reframe-${orientation}`,
+      );
+      orientSrcRel[orientation] = `auto-edit/${path.basename(reframed)}`;
+    }
+  }
+
+  // 4. Render captions over each (already-reframed) source. The video is already
+  //    at target dims so the OffthreadVideo objectFit cover is a no-op.
   console.log(`[auto-edit] bundling renderer (${durationInFrames} frames)...`);
   const serveUrl = await bundle({ entryPoint: path.join(ROOT, "src/index.tsx"), publicDir: PUBLIC_DIR });
 
@@ -130,7 +166,7 @@ async function main() {
   for (const orientation of orientations) {
     const fmt = FORMATS[orientation];
     const inputProps = {
-      videoSrc: videoSrcRel,
+      videoSrc: orientSrcRel[orientation],
       captions: edit.captions,
       accent: ACCENT,
       maxWordsPerGroup: fmt.maxWords,

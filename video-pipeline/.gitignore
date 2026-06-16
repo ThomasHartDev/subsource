@@ -8,3 +8,4 @@ out/
 # heavy media (generated frames, rendered output, reference clips) — regenerate, never commit
 public/
 refs/
+voice-clips/

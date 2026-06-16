@@ -28,11 +28,17 @@ export type TalkingHeadProps = {
 
 // Per-orientation caption layout. Font is a fraction of frame height so it reads
 // the same physical size in both, padding keeps it inside each platform's safe
-// zone (vertical bottom UI is taller than landscape's).
-const LAYOUT: Record<Orientation, { fontFrac: number; paddingBottom: string; paddingX: string }> = {
-  vertical: { fontFrac: 0.072, paddingBottom: "33%", paddingX: "9%" },
-  landscape: { fontFrac: 0.085, paddingBottom: "10%", paddingX: "12%" },
+// zone (vertical bottom UI is taller than landscape's). paddingXFrac is the
+// number behind paddingX, used to compute the available width for font auto-fit.
+const LAYOUT: Record<Orientation, { fontFrac: number; paddingBottom: string; paddingXFrac: number }> = {
+  vertical: { fontFrac: 0.072, paddingBottom: "33%", paddingXFrac: 0.09 },
+  landscape: { fontFrac: 0.085, paddingBottom: "10%", paddingXFrac: 0.12 },
 };
+
+// Rough advance width of Arial Black caps as a fraction of font size. Used to
+// shrink a group's font when a single long word ("STATISTICALLY,") would
+// otherwise overflow the safe width and clip against the frame edge.
+const CHAR_ADVANCE = 0.62;
 
 type Group = { words: CaptionWord[]; start: number; end: number };
 
@@ -65,7 +71,7 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
   orientation = "vertical",
 }) => {
   const frame = useCurrentFrame();
-  const { fps, height } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
   const layout = LAYOUT[orientation];
 
@@ -79,7 +85,17 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
     else break;
   }
 
-  const fontPx = Math.round(height * layout.fontFrac);
+  const baseFontPx = Math.round(height * layout.fontFrac);
+  const safeWidth = width * (1 - 2 * layout.paddingXFrac);
+
+  // Auto-fit: if the longest word in the group would overflow the safe width at
+  // the base size, shrink the whole group's font so it fits (down to a floor).
+  let fontPx = baseFontPx;
+  if (active) {
+    const longest = Math.max(...active.words.map((w) => w.word.length));
+    const fit = safeWidth / (longest * CHAR_ADVANCE);
+    fontPx = Math.round(Math.max(baseFontPx * 0.6, Math.min(baseFontPx, fit)));
+  }
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
@@ -95,7 +111,7 @@ const CaptionGroup: React.FC<{
   t: number;
   fontPx: number;
   accent: string;
-  layout: { paddingBottom: string; paddingX: string };
+  layout: { paddingBottom: string; paddingXFrac: number };
 }> = ({ group, t, fontPx, accent, layout }) => {
   const { fps } = useVideoConfig();
   const frame = useCurrentFrame();
@@ -119,8 +135,8 @@ const CaptionGroup: React.FC<{
         // (clears top username/ads + bottom comment/share UI), landscape sits in
         // the lower third with wider margins.
         paddingBottom: layout.paddingBottom,
-        paddingLeft: layout.paddingX,
-        paddingRight: layout.paddingX,
+        paddingLeft: `${layout.paddingXFrac * 100}%`,
+        paddingRight: `${layout.paddingXFrac * 100}%`,
       }}
     >
       <div

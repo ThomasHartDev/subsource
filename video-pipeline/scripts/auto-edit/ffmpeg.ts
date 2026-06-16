@@ -29,19 +29,22 @@ export function probeDuration(file: string): Promise<number> {
   });
 }
 
-// Trim + concat the keep-segments and clean the voice: rumble cut, light
-// denoise, loudness-normalize to -14 LUFS (YouTube spec, safe for IG/TikTok).
+// Keep only the speech segments and clean the voice: rumble cut, light denoise,
+// loudness-normalize to -14 LUFS (YouTube spec, safe for IG/TikTok).
+//
+// Uses select/aselect (one decode pass) rather than per-segment trim+concat. The
+// trim approach splits the input into N branches whose fifos buffer frames until
+// every branch drains, and that buffer scales with resolution — a 1080x1920@60
+// source pushed ffmpeg past 5GB RSS and earlyoom killed it. select drops
+// out-of-segment frames in a single pass with no fifo buildup. setpts=N/.../TB
+// repacks the kept frames onto a continuous timeline.
 export function buildTrimFilter(segments: { start: number; end: number }[]): string {
-  const parts: string[] = [];
-  const labels: string[] = [];
-  segments.forEach((s, i) => {
-    parts.push(`[0:v]trim=start=${s.start}:end=${s.end},setpts=PTS-STARTPTS[v${i}]`);
-    parts.push(`[0:a]atrim=start=${s.start}:end=${s.end},asetpts=PTS-STARTPTS[a${i}]`);
-    labels.push(`[v${i}][a${i}]`);
-  });
-  parts.push(`${labels.join("")}concat=n=${segments.length}:v=1:a=1[vc][ac]`);
-  parts.push(`[ac]highpass=f=80,afftdn=nr=10,loudnorm=I=-14:TP=-1.5:LRA=11[aout]`);
-  return parts.join(";");
+  const between = segments.map((s) => `between(t,${s.start},${s.end})`).join("+");
+  const v = `[0:v]select='${between}',setpts=N/FRAME_RATE/TB[vc]`;
+  const a =
+    `[0:a]aselect='${between}',asetpts=N/SR/TB,` +
+    `highpass=f=80,afftdn=nr=10,loudnorm=I=-14:TP=-1.5:LRA=11[aout]`;
+  return `${v};${a}`;
 }
 
 // Sidechain-duck a music bed under the voice and remaster to -14 LUFS.
