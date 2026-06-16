@@ -2,6 +2,7 @@ import React from "react";
 import {
   AbsoluteFill,
   Audio,
+  OffthreadVideo,
   Sequence,
   interpolate,
   spring,
@@ -19,11 +20,13 @@ import {
 export type Cue = {
   start: number;
   end: number;
-  kind: "stat" | "keyword" | "diagram";
+  kind: "stat" | "keyword" | "diagram" | "broll";
   value?: string;
   label?: string;
   text?: string;
   diagram?: { style: "steps" | "compare" | "flow"; items: string[]; title?: string };
+  query?: string;
+  src?: string; // staticFile-relative path to a downloaded example clip (broll)
 };
 
 export type Orientation = "vertical" | "landscape";
@@ -172,8 +175,60 @@ const DiagramOverlay: React.FC<{ cue: Cue; h: number; hold: number }> = ({ cue, 
   );
 };
 
+// Example footage (Pexels b-roll) shown as a rounded inset in the top region so
+// the speaker stays on screen. Muted — only the speaker's audio plays.
+const BrollInset: React.FC<{ cue: Cue; w: number; h: number; hold: number; orientation: Orientation }> = ({
+  cue,
+  w,
+  h,
+  hold,
+  orientation,
+}) => {
+  const { enter: _e, ...anim } = useEnter(hold);
+  if (!cue.src) return null;
+  const insetW = Math.round(w * (orientation === "vertical" ? 0.58 : 0.34));
+  const insetH = Math.round((insetW * 9) / 16);
+  return (
+    <div
+      style={{
+        ...anim,
+        width: insetW,
+        height: insetH,
+        borderRadius: h * 0.02,
+        overflow: "hidden",
+        border: BORDER,
+        boxShadow: SHADOW,
+        position: "relative",
+        background: "#000",
+      }}
+    >
+      <OffthreadVideo src={staticFile(cue.src)} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      {cue.label ? (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            bottom: 0,
+            margin: h * 0.01,
+            padding: `${h * 0.006}px ${h * 0.014}px`,
+            background: "rgba(12,14,18,0.78)",
+            borderRadius: h * 0.4,
+            fontFamily: FONT,
+            fontSize: h * 0.018,
+            fontWeight: 700,
+            color: "#fff",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {cue.label}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const OverlayLayer: React.FC<{ cues: Cue[]; orientation: Orientation }> = ({ cues, orientation }) => {
-  const { fps, height } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   return (
     <>
       {cues.map((cue, i) => {
@@ -194,6 +249,7 @@ export const OverlayLayer: React.FC<{ cues: Cue[]; orientation: Orientation }> =
               {cue.kind === "stat" ? <StatCallout cue={cue} h={height} hold={hold} /> : null}
               {cue.kind === "keyword" ? <KeywordChip cue={cue} h={height} hold={hold} /> : null}
               {cue.kind === "diagram" && cue.diagram ? <DiagramOverlay cue={cue} h={height} hold={hold} /> : null}
+              {cue.kind === "broll" ? <BrollInset cue={cue} w={width} h={height} hold={hold} orientation={orientation} /> : null}
             </AbsoluteFill>
             <Audio src={staticFile(`site-commercial/sfx/${sfx}`)} volume={0.3} />
           </Sequence>

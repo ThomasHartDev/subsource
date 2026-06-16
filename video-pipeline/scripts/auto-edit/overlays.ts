@@ -18,7 +18,7 @@ export const DiagramSchema = z.object({
 export const CueSchema = z.object({
   start: z.number().nonnegative(),
   end: z.number().positive(),
-  kind: z.enum(["stat", "keyword", "diagram"]),
+  kind: z.enum(["stat", "keyword", "diagram", "broll"]),
   // stat
   value: z.string().max(16).optional(),
   label: z.string().max(40).optional(),
@@ -26,6 +26,10 @@ export const CueSchema = z.object({
   text: z.string().max(40).optional(),
   // diagram
   diagram: DiagramSchema.optional(),
+  // broll: a Pexels search query for an example clip; src is filled by the
+  // pipeline after the clip is downloaded.
+  query: z.string().max(60).optional(),
+  src: z.string().optional(),
 });
 export type Cue = z.infer<typeof CueSchema>;
 
@@ -74,6 +78,7 @@ Pick at most ${maxCues} moments where a SIMPLE visual genuinely helps a viewer. 
 - "stat": a number/metric the speaker says (followers, %, $, counts). value = the number formatted short ("3M", "20", "50%"), label = 2-4 word context.
 - "keyword": a single key term/phrase worth emphasizing (<=3 words).
 - "diagram": only when the speaker lists steps, compares two things, or describes a flow. style "steps" (ordered short items), "compare" (exactly 2 items), or "flow" (2-4 items shown A -> B -> C). items are SHORT (<=4 words each).
+- "broll": only when the speaker names a CONCRETE, filmable real-world subject that an example stock clip would illustrate (a place, object, activity, scene). query = a 2-4 word stock-footage search ("city skyline night", "typing on laptop", "ocean waves"). label = 1-3 word caption. Skip abstract ideas — no b-roll for feelings, opinions, or numbers.
 
 For each, start/end are seconds in the given timeline; set start when the speaker says it, end 2.5-3.5s later (clamp to <= ${durationSec.toFixed(1)}). Don't overlap cues.
 
@@ -81,7 +86,7 @@ Topic: ${topic || "(infer)"}
 Transcript: ${transcriptLines(captions).slice(0, 4000)}
 
 Return ONLY a JSON array (no prose, no code fences) of objects:
-{"start":number,"end":number,"kind":"stat|keyword|diagram","value"?:string,"label"?:string,"text"?:string,"diagram"?:{"style":"steps|compare|flow","items":string[],"title"?:string}}
+{"start":number,"end":number,"kind":"stat|keyword|diagram|broll","value"?:string,"label"?:string,"text"?:string,"diagram"?:{"style":"steps|compare|flow","items":string[],"title"?:string},"query"?:string}
 If nothing genuinely warrants a visual, return [].`;
 
   const raw = await runCapture("claude", ["-p", prompt], 120_000);
@@ -107,6 +112,7 @@ If nothing genuinely warrants a visual, return [].`;
     if (c.kind === "stat" && !c.value) continue;
     if (c.kind === "keyword" && !c.text) continue;
     if (c.kind === "diagram" && !c.diagram) continue;
+    if (c.kind === "broll" && !c.query) continue;
     cues.push(c);
   }
   // Sort and drop overlaps (keep the earlier one).

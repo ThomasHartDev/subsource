@@ -100,6 +100,32 @@ export async function getBaitClip(
   return { clipPath, durationSec: video.duration };
 }
 
+// General free-text b-roll search: download the best mp4 for an arbitrary query
+// to outPath. Used by the auto-editor to overlay example footage on concrete
+// topics the speaker mentions. orientation biases which variant pickBestMp4
+// prefers (portrait for vertical insets, landscape otherwise).
+export async function searchClip(
+  query: string,
+  outPath: string,
+  orientation: "portrait" | "landscape" = "landscape",
+): Promise<{ clipPath: string; durationSec: number } | null> {
+  const apiKey = process.env.PEXELS_API_KEY;
+  if (!apiKey) throw new Error("PEXELS_API_KEY not set");
+  const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=5&orientation=${orientation}`;
+  const res = await fetch(url, { headers: { Authorization: apiKey } });
+  if (!res.ok) throw new Error(`Pexels search failed: ${res.status}`);
+  const body = (await res.json()) as PexelsSearchResponse;
+  if (!body.videos?.length) return null;
+  // Prefer a clip at least 3s long so it covers a typical overlay window.
+  const video = body.videos.find((v) => v.duration >= 3) ?? body.videos[0]!;
+  const file = pickBestMp4(video.video_files);
+  if (!file) return null;
+  const dl = await fetch(file.link);
+  if (!dl.ok) throw new Error(`Pexels CDN download failed: ${dl.status}`);
+  await fs.writeFile(outPath, Buffer.from(await dl.arrayBuffer()));
+  return { clipPath: outPath, durationSec: video.duration };
+}
+
 // Prefer 1080x1920 portrait or higher; otherwise the highest-resolution mp4.
 function pickBestMp4(files: PexelsVideoFile[]): PexelsVideoFile | null {
   const mp4s = files.filter((f) => f.file_type === "video/mp4");

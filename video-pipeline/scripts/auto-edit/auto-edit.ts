@@ -7,6 +7,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import { computeEditList, DEFAULT_OPTIONS, type Word } from "./editlist";
 import { run, probeDuration, buildTrimFilter, buildMusicDuckFilter } from "./ffmpeg";
 import { analyzeOverlays, type Cue } from "./overlays";
+import { searchClip } from "../../src/services/pexels";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -118,6 +119,27 @@ async function main() {
     } catch (e) {
       console.warn(`[auto-edit] overlay analysis failed (${(e as Error).message}); continuing without`);
     }
+
+    // Fetch an example clip for each b-roll cue (before bundling, so Remotion's
+    // public/ snapshot includes them). A failed fetch drops just that cue.
+    const broll = overlayCues.filter((c) => c.kind === "broll" && c.query);
+    for (let i = 0; i < broll.length; i++) {
+      const cue = broll[i]!;
+      const file = path.join(AE_PUBLIC, `broll-${i}-${ts}.mp4`);
+      try {
+        const r = await searchClip(cue.query!, file, "landscape");
+        if (r) {
+          cue.src = `auto-edit/${path.basename(file)}`;
+          console.log(`[auto-edit] b-roll "${cue.query}" -> ${path.basename(file)}`);
+        } else {
+          console.warn(`[auto-edit] no b-roll found for "${cue.query}"; dropping cue`);
+        }
+      } catch (e) {
+        console.warn(`[auto-edit] b-roll fetch failed for "${cue.query}" (${(e as Error).message}); dropping cue`);
+      }
+    }
+    // Drop b-roll cues that never got a clip so the renderer doesn't 404.
+    overlayCues = overlayCues.filter((c) => c.kind !== "broll" || c.src);
   }
 
   // 3b. Optional music bed: sidechain-duck it under the voice and remaster.
