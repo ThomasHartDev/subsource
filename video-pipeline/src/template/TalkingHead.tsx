@@ -33,8 +33,8 @@ export type TalkingHeadProps = {
 // zone (vertical bottom UI is taller than landscape's). paddingXFrac is the
 // number behind paddingX, used to compute the available width for font auto-fit.
 const LAYOUT: Record<Orientation, { fontFrac: number; paddingBottom: string; paddingXFrac: number }> = {
-  vertical: { fontFrac: 0.05, paddingBottom: "33%", paddingXFrac: 0.09 },
-  landscape: { fontFrac: 0.058, paddingBottom: "10%", paddingXFrac: 0.12 },
+  vertical: { fontFrac: 0.056, paddingBottom: "32%", paddingXFrac: 0.08 },
+  landscape: { fontFrac: 0.064, paddingBottom: "9%", paddingXFrac: 0.1 },
 };
 
 // Rough advance width of Arial Black caps as a fraction of font size. Used to
@@ -154,15 +154,18 @@ const CaptionGroup: React.FC<{
           flexWrap: "wrap",
           justifyContent: "center",
           gap: `0 ${fontPx * 0.26}px`,
-          // Clean medium-weight sans, natural case, no all-caps. The "loud"
-          // look came from Arial Black 900 + caps + thick stroke + yellow; this
-          // keeps captions legible but understated.
+          // Clean medium-weight sans, natural case (no all-caps, no yellow). A
+          // subtle rounded backing plate guarantees contrast on bright/busy
+          // footage so captions are readable without going loud.
           fontFamily: '"Helvetica Neue", Inter, system-ui, Arial, sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: fontPx,
-          lineHeight: 1.12,
+          lineHeight: 1.14,
           letterSpacing: "-0.01em",
           textAlign: "center",
+          backgroundColor: "rgba(0,0,0,0.4)",
+          borderRadius: fontPx * 0.34,
+          padding: `${fontPx * 0.22}px ${fontPx * 0.42}px`,
         }}
       >
         {group.words.map((w, i) => {
@@ -171,16 +174,15 @@ const CaptionGroup: React.FC<{
             <span
               key={i}
               style={{
-                // Emphasis is opacity, not color: the current word is full
-                // white, the rest dimmed. accent tints the active word only if
+                // The current word is full white, the rest only slightly dimmed
+                // (still clearly readable). accent tints the active word only if
                 // the caller passes a real color (default white = monochrome).
-                color: isActive ? accent : "rgba(255,255,255,0.9)",
-                opacity: isActive ? 1 : 0.55,
-                // Thin stroke + soft shadow for legibility on bright footage,
-                // far lighter than the old heavy outline.
-                WebkitTextStroke: `${Math.max(1, fontPx * 0.018)}px rgba(0,0,0,0.55)`,
+                color: isActive ? accent : "#ffffff",
+                opacity: isActive ? 1 : 0.82,
+                // Stroke + shadow layered on top of the plate for crisp edges.
+                WebkitTextStroke: `${Math.max(1.5, fontPx * 0.022)}px rgba(0,0,0,0.6)`,
                 paintOrder: "stroke fill",
-                textShadow: "0 2px 10px rgba(0,0,0,0.45)",
+                textShadow: "0 2px 12px rgba(0,0,0,0.6)",
                 transition: "opacity 0.06s",
               }}
             >

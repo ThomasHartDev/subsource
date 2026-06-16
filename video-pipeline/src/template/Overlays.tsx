@@ -14,7 +14,8 @@ import {
 // diagrams the dialogue-analysis step (overlays.ts) decided are worth showing.
 // They sit in the TOP region so they never cover the speaker's face (captions
 // own the bottom), and each enters with a whoosh/shimmer SFX so it reads as a
-// produced edit.
+// produced edit. Style is modern-minimal: a solid dark card with a hairline
+// border, one accent color, tabular figures, and a count-up on stats.
 export type Cue = {
   start: number;
   end: number;
@@ -27,87 +28,110 @@ export type Cue = {
 
 export type Orientation = "vertical" | "landscape";
 
-const PANEL = "rgba(12,14,18,0.62)";
-const WHITE = "#ffffff";
-const DIM = "rgba(255,255,255,0.66)";
+const ACCENT = "#33E0A1"; // modern mint — pops on video, not an indigo/purple AI tell
+const CARD = "rgba(14,17,22,0.76)";
+const BORDER = "1px solid rgba(255,255,255,0.14)";
+const DIM = "rgba(255,255,255,0.62)";
+const SHADOW = "0 14px 46px rgba(0,0,0,0.46)";
 
 // Top band where graphics live, per orientation (keeps them off the face).
-const TOP_FRAC: Record<Orientation, number> = { vertical: 0.1, landscape: 0.07 };
+const TOP_FRAC: Record<Orientation, number> = { vertical: 0.11, landscape: 0.08 };
 
 function useEnter(holdFrames: number) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ fps, frame, config: { damping: 16, stiffness: 180, mass: 0.7 }, durationInFrames: 12 });
-  // Fade out over the last ~9 frames of the cue.
+  const enter = spring({ fps, frame, config: { damping: 14, stiffness: 220, mass: 0.6 }, durationInFrames: 14 });
   const exit = interpolate(frame, [holdFrames - 9, holdFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const opacity = Math.min(interpolate(enter, [0, 1], [0, 1]), exit);
-  const rise = interpolate(enter, [0, 1], [16, 0]);
-  const scale = interpolate(enter, [0, 1], [0.96, 1]);
-  return { opacity, transform: `translateY(${rise}px) scale(${scale})` };
+  const rise = interpolate(enter, [0, 1], [22, 0]);
+  const scale = interpolate(enter, [0, 1], [0.9, 1]);
+  return { opacity, transform: `translateY(${rise}px) scale(${scale})`, enter };
 }
 
-const panelStyle = (pad: number, radius: number): React.CSSProperties => ({
-  background: PANEL,
+const FONT = '"Helvetica Neue", Inter, system-ui, Arial, sans-serif';
+const cardStyle = (padV: number, padH: number, radius: number): React.CSSProperties => ({
+  background: CARD,
+  border: BORDER,
   borderRadius: radius,
-  padding: `${pad}px ${pad * 1.4}px`,
-  boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-  fontFamily: '"Helvetica Neue", Inter, system-ui, Arial, sans-serif',
-  color: WHITE,
+  padding: `${padV}px ${padH}px`,
+  boxShadow: SHADOW,
+  fontFamily: FONT,
+  color: "#fff",
   textAlign: "center",
 });
 
+// Split "3M" / "20K" / "50%" / "$1.2M" into prefix, number, decimals, suffix so
+// the number can count up on entrance and stay correctly formatted.
+function parseStat(value: string): { prefix: string; num: number; decimals: number; suffix: string } | null {
+  const m = value.match(/^([^\d-]*)(-?\d+(?:\.\d+)?)(.*)$/);
+  if (!m) return null;
+  const numStr = m[2]!;
+  const dot = numStr.indexOf(".");
+  return { prefix: m[1] ?? "", num: parseFloat(numStr), decimals: dot >= 0 ? numStr.length - dot - 1 : 0, suffix: m[3] ?? "" };
+}
+
 const StatCallout: React.FC<{ cue: Cue; h: number; hold: number }> = ({ cue, h, hold }) => {
-  const anim = useEnter(hold);
+  const { enter, ...anim } = useEnter(hold);
+  const parsed = cue.value ? parseStat(cue.value) : null;
+  const shown = parsed
+    ? `${parsed.prefix}${(parsed.num * enter).toFixed(parsed.decimals)}${parsed.suffix}`
+    : cue.value;
   return (
-    <div style={{ ...panelStyle(h * 0.018, h * 0.02), ...anim }}>
-      <div style={{ fontSize: h * 0.075, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.02em" }}>{cue.value}</div>
+    <div style={{ ...cardStyle(h * 0.02, h * 0.03, h * 0.024), ...anim, display: "inline-flex", flexDirection: "column", alignItems: "center", gap: h * 0.006 }}>
+      <div style={{ fontSize: h * 0.082, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.02em", color: ACCENT, fontVariantNumeric: "tabular-nums" }}>
+        {shown}
+      </div>
       {cue.label ? (
-        <div style={{ fontSize: h * 0.022, fontWeight: 600, color: DIM, marginTop: h * 0.008, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          {cue.label}
-        </div>
+        <div style={{ fontSize: h * 0.02, fontWeight: 600, color: DIM, textTransform: "uppercase", letterSpacing: "0.1em" }}>{cue.label}</div>
       ) : null}
     </div>
   );
 };
 
 const KeywordChip: React.FC<{ cue: Cue; h: number; hold: number }> = ({ cue, h, hold }) => {
-  const anim = useEnter(hold);
+  const { enter: _e, ...anim } = useEnter(hold);
   return (
-    <div style={{ ...panelStyle(h * 0.012, h * 0.5), ...anim, display: "inline-block" }}>
-      <span style={{ fontSize: h * 0.032, fontWeight: 700, letterSpacing: "-0.01em" }}>{cue.text}</span>
+    <div style={{ ...cardStyle(h * 0.014, h * 0.026, h * 0.5), ...anim, display: "inline-flex", alignItems: "center", gap: h * 0.012 }}>
+      <span style={{ width: h * 0.012, height: h * 0.012, borderRadius: "50%", background: ACCENT, display: "inline-block" }} />
+      <span style={{ fontSize: h * 0.03, fontWeight: 700, letterSpacing: "-0.01em" }}>{cue.text}</span>
     </div>
   );
 };
 
 const DiagramOverlay: React.FC<{ cue: Cue; h: number; hold: number }> = ({ cue, h, hold }) => {
-  const anim = useEnter(hold);
+  const { enter: _e, ...anim } = useEnter(hold);
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const d = cue.diagram!;
   const items = d.items.slice(0, 5);
   const fz = h * 0.024;
 
-  // Stagger each item in shortly after the panel appears.
-  const item = (txt: string, i: number, extra?: React.CSSProperties) => {
-    const reveal = interpolate(frame, [6 + i * 4, 14 + i * 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-    return (
-      <div
-        key={i}
-        style={{
-          opacity: reveal,
-          transform: `translateY(${interpolate(reveal, [0, 1], [8, 0])}px)`,
-          background: "rgba(255,255,255,0.1)",
-          borderRadius: h * 0.012,
-          padding: `${h * 0.01}px ${h * 0.018}px`,
-          fontSize: fz,
-          fontWeight: 600,
-          ...extra,
-        }}
-      >
-        {txt}
-      </div>
-    );
-  };
+  const reveal = (i: number) =>
+    interpolate(frame, [6 + i * 4, 14 + i * 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  const chip = (txt: string, i: number, opts?: { accent?: boolean; index?: number; extra?: React.CSSProperties }) => (
+    <div
+      key={i}
+      style={{
+        opacity: reveal(i),
+        transform: `translateY(${interpolate(reveal(i), [0, 1], [10, 0])}px)`,
+        display: "flex",
+        alignItems: "center",
+        gap: h * 0.012,
+        background: opts?.accent ? "rgba(51,224,161,0.14)" : "rgba(255,255,255,0.08)",
+        border: opts?.accent ? `1px solid ${ACCENT}` : "1px solid rgba(255,255,255,0.12)",
+        borderRadius: h * 0.014,
+        padding: `${h * 0.012}px ${h * 0.02}px`,
+        fontSize: fz,
+        fontWeight: 600,
+        ...opts?.extra,
+      }}
+    >
+      {opts?.index != null ? (
+        <span style={{ color: ACCENT, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{opts.index}</span>
+      ) : null}
+      <span>{txt}</span>
+    </div>
+  );
 
   let body: React.ReactNode;
   if (d.style === "flow") {
@@ -115,31 +139,31 @@ const DiagramOverlay: React.FC<{ cue: Cue; h: number; hold: number }> = ({ cue, 
       <div style={{ display: "flex", alignItems: "center", gap: h * 0.012, flexWrap: "wrap", justifyContent: "center" }}>
         {items.map((t, i) => (
           <React.Fragment key={i}>
-            {item(t, i)}
-            {i < items.length - 1 ? <span style={{ fontSize: fz, color: DIM, opacity: interpolate(frame, [10 + i * 4, 16 + i * 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>→</span> : null}
+            {chip(t, i)}
+            {i < items.length - 1 ? <span style={{ fontSize: fz * 1.1, color: ACCENT, opacity: reveal(i) }}>→</span> : null}
           </React.Fragment>
         ))}
       </div>
     );
   } else if (d.style === "compare") {
     body = (
-      <div style={{ display: "flex", alignItems: "stretch", gap: h * 0.014, justifyContent: "center" }}>
-        {item(items[0] ?? "", 0, { flex: 1 })}
-        {item(items[1] ?? "", 1, { flex: 1 })}
+      <div style={{ display: "flex", alignItems: "stretch", gap: h * 0.016, justifyContent: "center" }}>
+        {chip(items[0] ?? "", 0, { extra: { flex: 1, justifyContent: "center" } })}
+        {chip(items[1] ?? "", 1, { accent: true, extra: { flex: 1, justifyContent: "center" } })}
       </div>
     );
   } else {
     body = (
-      <div style={{ display: "flex", flexDirection: "column", gap: h * 0.008, alignItems: "stretch" }}>
-        {items.map((t, i) => item(`${i + 1}.  ${t}`, i, { textAlign: "left" }))}
+      <div style={{ display: "flex", flexDirection: "column", gap: h * 0.01, alignItems: "stretch" }}>
+        {items.map((t, i) => chip(t, i, { index: i + 1, extra: { textAlign: "left" } }))}
       </div>
     );
   }
 
   return (
-    <div style={{ ...panelStyle(h * 0.016, h * 0.018), ...anim, maxWidth: "84%" }}>
+    <div style={{ ...cardStyle(h * 0.018, h * 0.024, h * 0.02), ...anim, maxWidth: "86%" }}>
       {d.title ? (
-        <div style={{ fontSize: h * 0.02, fontWeight: 700, color: DIM, marginBottom: h * 0.012, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ fontSize: h * 0.018, fontWeight: 700, color: ACCENT, marginBottom: h * 0.012, textTransform: "uppercase", letterSpacing: "0.1em" }}>
           {d.title}
         </div>
       ) : null}
