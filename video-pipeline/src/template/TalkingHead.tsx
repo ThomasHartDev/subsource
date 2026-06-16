@@ -31,8 +31,8 @@ export type TalkingHeadProps = {
 // zone (vertical bottom UI is taller than landscape's). paddingXFrac is the
 // number behind paddingX, used to compute the available width for font auto-fit.
 const LAYOUT: Record<Orientation, { fontFrac: number; paddingBottom: string; paddingXFrac: number }> = {
-  vertical: { fontFrac: 0.072, paddingBottom: "33%", paddingXFrac: 0.09 },
-  landscape: { fontFrac: 0.085, paddingBottom: "10%", paddingXFrac: 0.12 },
+  vertical: { fontFrac: 0.05, paddingBottom: "33%", paddingXFrac: 0.09 },
+  landscape: { fontFrac: 0.058, paddingBottom: "10%", paddingXFrac: 0.12 },
 };
 
 // Rough advance width of Arial Black caps as a fraction of font size. Used to
@@ -124,7 +124,9 @@ const CaptionGroup: React.FC<{
     config: { damping: 12, stiffness: 200, mass: 0.6 },
     durationInFrames: 12,
   });
-  const pop = interpolate(scale, [0, 1], [0.82, 1]);
+  // Gentle fade/rise instead of a bouncy pop — minimal style.
+  const pop = interpolate(scale, [0, 1], [0.96, 1]);
+  const opacity = interpolate(scale, [0, 1], [0, 1]);
 
   return (
     <AbsoluteFill
@@ -142,15 +144,19 @@ const CaptionGroup: React.FC<{
       <div
         style={{
           transform: `scale(${pop})`,
+          opacity,
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
-          gap: `0 ${fontPx * 0.28}px`,
-          fontFamily: '"Arial Black", system-ui, sans-serif',
-          fontWeight: 900,
+          gap: `0 ${fontPx * 0.26}px`,
+          // Clean medium-weight sans, natural case, no all-caps. The "loud"
+          // look came from Arial Black 900 + caps + thick stroke + yellow; this
+          // keeps captions legible but understated.
+          fontFamily: '"Helvetica Neue", Inter, system-ui, Arial, sans-serif',
+          fontWeight: 600,
           fontSize: fontPx,
-          lineHeight: 1.08,
-          textTransform: "uppercase",
+          lineHeight: 1.12,
+          letterSpacing: "-0.01em",
           textAlign: "center",
         }}
       >
@@ -160,12 +166,17 @@ const CaptionGroup: React.FC<{
             <span
               key={i}
               style={{
-                color: isActive ? accent : "#ffffff",
-                WebkitTextStroke: `${Math.max(2, fontPx * 0.06)}px #000`,
+                // Emphasis is opacity, not color: the current word is full
+                // white, the rest dimmed. accent tints the active word only if
+                // the caller passes a real color (default white = monochrome).
+                color: isActive ? accent : "rgba(255,255,255,0.9)",
+                opacity: isActive ? 1 : 0.55,
+                // Thin stroke + soft shadow for legibility on bright footage,
+                // far lighter than the old heavy outline.
+                WebkitTextStroke: `${Math.max(1, fontPx * 0.018)}px rgba(0,0,0,0.55)`,
                 paintOrder: "stroke fill",
-                textShadow: "0 4px 18px rgba(0,0,0,0.65)",
-                transform: isActive ? "translateY(-2%)" : "none",
-                transition: "color 0.05s",
+                textShadow: "0 2px 10px rgba(0,0,0,0.45)",
+                transition: "opacity 0.06s",
               }}
             >
               {w.word}

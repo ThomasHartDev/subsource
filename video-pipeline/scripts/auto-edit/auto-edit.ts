@@ -13,7 +13,9 @@ const PUBLIC_DIR = path.join(ROOT, "public");
 const AE_PUBLIC = path.join(PUBLIC_DIR, "auto-edit");
 
 const FPS = 30;
-const ACCENT = "#FFD400";
+// Minimal captions: active word is full white, others dimmed (emphasis via
+// opacity, not a loud color). Swap to a real hex here to tint the active word.
+const ACCENT = "#FFFFFF";
 
 type Orientation = "vertical" | "landscape";
 const FORMATS: Record<Orientation, { width: number; height: number; maxWords: number }> = {
@@ -137,10 +139,20 @@ async function main() {
     const trackPath = path.join(work, "facetrack.json");
     console.log("[auto-edit] face-tracking for head-aware reframe...");
     await run("python3", [path.join(__dirname, "autoframe.py"), videoSrcAbs, trackPath], "autoframe");
+
+    // Cut times in the trimmed timeline (start of each kept segment) anchor the
+    // zoom beats: a push-in landing on a cut hides the edit.
+    const cutTimes: number[] = [];
+    let acc = 0;
+    for (const s of edit.segments) {
+      cutTimes.push(+acc.toFixed(3));
+      acc += s.end - s.start;
+    }
+
     for (const orientation of orientations) {
       const fmt = FORMATS[orientation];
       const reframed = path.join(AE_PUBLIC, `reframed-${orientation}-${ts}.mp4`);
-      console.log(`[auto-edit] reframing ${orientation} (head-tracked ${fmt.width}x${fmt.height})...`);
+      console.log(`[auto-edit] reframing ${orientation} (head-tracked + zoom ${fmt.width}x${fmt.height})...`);
       await run(
         "python3",
         [
@@ -149,6 +161,7 @@ async function main() {
           "--track", trackPath,
           "--tw", String(fmt.width),
           "--th", String(fmt.height),
+          "--cuts", cutTimes.join(","),
           "--out", reframed,
         ],
         `reframe-${orientation}`,
