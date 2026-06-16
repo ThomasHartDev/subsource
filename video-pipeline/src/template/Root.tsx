@@ -1,4 +1,7 @@
 import { Composition } from "remotion";
+import { BlogHeroTerminal, TERMINAL_DURATION, TERMINAL_FPS } from "./blog/BlogHeroTerminal";
+import { BlogHeroMetric, METRIC_DURATION, METRIC_FPS } from "./blog/BlogHeroMetric";
+import { BlogHeroAbstract, ABSTRACT_DURATION, ABSTRACT_FPS } from "./blog/BlogHeroAbstract";
 import { AppPitchAd, type AppPitchAdProps } from "./AppPitchAd";
 import { VeoAd, type VeoAdProps } from "./VeoAd";
 import { GlassCards, type GlassCardsProps, SHOTS_FRAMES } from "./GlassCards";
@@ -115,6 +118,32 @@ const glassDefaults: GlassCardsProps = {
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      {/* Blog hero compositions — landscape 16:9 for thomas-hart.com */}
+      <Composition
+        id="BlogHeroTerminal"
+        component={BlogHeroTerminal}
+        durationInFrames={TERMINAL_DURATION}
+        fps={TERMINAL_FPS}
+        width={1280}
+        height={720}
+      />
+      <Composition
+        id="BlogHeroMetric"
+        component={BlogHeroMetric}
+        durationInFrames={METRIC_DURATION}
+        fps={METRIC_FPS}
+        width={1280}
+        height={720}
+        defaultProps={{ beforeValue: 420, afterValue: 34, unit: 'ms', label: 'cold start', improvement: '12× faster' }}
+      />
+      <Composition
+        id="BlogHeroAbstract"
+        component={BlogHeroAbstract}
+        durationInFrames={ABSTRACT_DURATION}
+        fps={ABSTRACT_FPS}
+        width={1280}
+        height={720}
+      />
       <Composition
         id="AppPitchAd"
         component={AppPitchAd}
@@ -222,7 +251,6 @@ export const RemotionRoot: React.FC = () => {
               { word: "auto", start: 0.5, end: 0.9 },
               { word: "captions", start: 0.9, end: 1.5 },
             ],
-            accent: "#FFD400",
             maxWordsPerGroup: 3,
           } satisfies TalkingHeadProps
         }

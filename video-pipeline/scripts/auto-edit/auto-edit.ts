@@ -15,9 +15,6 @@ const PUBLIC_DIR = path.join(ROOT, "public");
 const AE_PUBLIC = path.join(PUBLIC_DIR, "auto-edit");
 
 const FPS = 30;
-// Brand accent for the active caption word — same mint as the graphics so the
-// whole video reads as one branded system. Set to "#FFFFFF" for monochrome.
-const ACCENT = "#33E0A1";
 
 type Orientation = "vertical" | "landscape";
 const FORMATS: Record<Orientation, { width: number; height: number; maxWords: number }> = {
@@ -222,7 +219,6 @@ async function main() {
     const inputProps = {
       videoSrc: orientSrcRel[orientation],
       captions: edit.captions,
-      accent: ACCENT,
       maxWordsPerGroup: fmt.maxWords,
       orientation,
       overlays: overlayCues,

@@ -15,19 +15,17 @@ export type CaptionWord = { word: string; start: number; end: number };
 
 // CAPTION_BRAND — the one place the subtitle look is defined, so every video
 // gets the identical, on-brand captions (the "repeatable, branded to me" spec).
-// TikTok-creator style: bold Montserrat, no box, crisp outline so it's readable
-// on ANY background, small enough to not cover the subject, with the spoken word
-// popping in the brand accent.
+// Prestige style: Playfair Display (editorial serif), no box, crisp outline so
+// it's readable on ANY background, small enough to not cover the subject, single
+// color (no word-by-word highlight).
 const CAPTION_BRAND = {
-  font: captionFontFamily, // Montserrat (loaded in font.ts)
-  // One constant weight for every word so activating a word never changes its
-  // width (no line reflow / no adjacent words merging). Emphasis is color only.
-  weight: 800,
-  // Outline + shadow do the legibility work instead of a background plate.
-  strokeFrac: 0.07, // black outline as a fraction of font size
+  font: captionFontFamily, // Playfair Display (loaded in font.ts)
+  weight: 700,
+  // Outline + shadow do the legibility work instead of a background plate (and
+  // thicken Playfair's thin strokes so the serif survives over bright video).
+  strokeFrac: 0.06, // black outline as a fraction of font size
   wordGapFrac: 0.3, // space between words as a fraction of font size
-  inactiveColor: "#ffffff",
-  inactiveOpacity: 0.96,
+  color: "#ffffff",
 };
 
 // "vertical" = 9:16 (TikTok/Reels/Shorts): captions sit high in the Hormozi zone
@@ -40,7 +38,6 @@ export type Orientation = "vertical" | "landscape";
 export type TalkingHeadProps = {
   videoSrc: string; // staticFile-relative path to the trimmed video
   captions: CaptionWord[]; // timestamps in the trimmed timeline (seconds)
-  accent: string; // active-word highlight color
   maxWordsPerGroup: number;
   orientation?: Orientation;
   overlays?: Cue[]; // content-driven graphics (stat/keyword/diagram), trimmed timeline
@@ -86,7 +83,6 @@ function groupCaptions(captions: CaptionWord[], maxWords: number): Group[] {
 export const TalkingHead: React.FC<TalkingHeadProps> = ({
   videoSrc,
   captions,
-  accent,
   maxWordsPerGroup,
   orientation = "vertical",
   overlays = [],
@@ -124,18 +120,16 @@ export const TalkingHead: React.FC<TalkingHeadProps> = ({
 
       {overlays.length ? <OverlayLayer cues={overlays} orientation={orientation} /> : null}
 
-      {active ? <CaptionGroup group={active} t={t} fontPx={fontPx} accent={accent} layout={layout} /> : null}
+      {active ? <CaptionGroup group={active} fontPx={fontPx} layout={layout} /> : null}
     </AbsoluteFill>
   );
 };
 
 const CaptionGroup: React.FC<{
   group: Group;
-  t: number;
   fontPx: number;
-  accent: string;
   layout: { paddingBottom: string; paddingXFrac: number };
-}> = ({ group, t, fontPx, accent, layout }) => {
+}> = ({ group, fontPx, layout }) => {
   const { fps } = useVideoConfig();
   const frame = useCurrentFrame();
 
@@ -183,27 +177,21 @@ const CaptionGroup: React.FC<{
           textAlign: "center",
         }}
       >
-        {group.words.map((w, i) => {
-          const isActive = t >= w.start - 0.02 && t <= w.end + 0.08;
-          return (
-            <span
-              key={i}
-              style={{
-                // The spoken word pops in the brand accent; the rest stay white.
-                // Weight is constant so nothing reflows as words activate. Outline
-                // + shadow give edge separation on any background, no box needed.
-                color: isActive ? accent : CAPTION_BRAND.inactiveColor,
-                opacity: isActive ? 1 : CAPTION_BRAND.inactiveOpacity,
-                WebkitTextStroke: `${Math.max(2, fontPx * CAPTION_BRAND.strokeFrac)}px #000`,
-                paintOrder: "stroke fill",
-                textShadow: `0 ${fontPx * 0.03}px ${fontPx * 0.09}px rgba(0,0,0,0.55)`,
-                transition: "color 0.06s",
-              }}
-            >
-              {w.word}
-            </span>
-          );
-        })}
+        {group.words.map((w, i) => (
+          // All words render identically — no per-word highlight. Outline +
+          // shadow give edge separation on any background, no box needed.
+          <span
+            key={i}
+            style={{
+              color: CAPTION_BRAND.color,
+              WebkitTextStroke: `${Math.max(2, fontPx * CAPTION_BRAND.strokeFrac)}px #000`,
+              paintOrder: "stroke fill",
+              textShadow: `0 ${fontPx * 0.03}px ${fontPx * 0.09}px rgba(0,0,0,0.55)`,
+            }}
+          >
+            {w.word}
+          </span>
+        ))}
       </div>
     </AbsoluteFill>
   );
