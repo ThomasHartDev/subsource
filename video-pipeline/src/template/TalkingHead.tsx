@@ -9,8 +9,26 @@ import {
   useVideoConfig,
 } from "remotion";
 import { OverlayLayer, type Cue } from "./Overlays";
+import { captionFontFamily } from "./font";
 
 export type CaptionWord = { word: string; start: number; end: number };
+
+// CAPTION_BRAND — the one place the subtitle look is defined, so every video
+// gets the identical, on-brand captions (the "repeatable, branded to me" spec).
+// TikTok-creator style: bold Montserrat, no box, crisp outline so it's readable
+// on ANY background, small enough to not cover the subject, with the spoken word
+// popping in the brand accent.
+const CAPTION_BRAND = {
+  font: captionFontFamily, // Montserrat (loaded in font.ts)
+  // One constant weight for every word so activating a word never changes its
+  // width (no line reflow / no adjacent words merging). Emphasis is color only.
+  weight: 800,
+  // Outline + shadow do the legibility work instead of a background plate.
+  strokeFrac: 0.07, // black outline as a fraction of font size
+  wordGapFrac: 0.3, // space between words as a fraction of font size
+  inactiveColor: "#ffffff",
+  inactiveOpacity: 0.96,
+};
 
 // "vertical" = 9:16 (TikTok/Reels/Shorts): captions sit high in the Hormozi zone
 // to clear the bottom UI. "landscape" = 16:9 (YouTube/LinkedIn/X): captions sit
@@ -33,14 +51,14 @@ export type TalkingHeadProps = {
 // zone (vertical bottom UI is taller than landscape's). paddingXFrac is the
 // number behind paddingX, used to compute the available width for font auto-fit.
 const LAYOUT: Record<Orientation, { fontFrac: number; paddingBottom: string; paddingXFrac: number }> = {
-  vertical: { fontFrac: 0.056, paddingBottom: "32%", paddingXFrac: 0.08 },
-  landscape: { fontFrac: 0.064, paddingBottom: "9%", paddingXFrac: 0.1 },
+  vertical: { fontFrac: 0.042, paddingBottom: "26%", paddingXFrac: 0.1 },
+  landscape: { fontFrac: 0.05, paddingBottom: "8%", paddingXFrac: 0.14 },
 };
 
-// Rough advance width of Arial Black caps as a fraction of font size. Used to
+// Rough advance width of Montserrat 700 as a fraction of font size. Used to
 // shrink a group's font when a single long word ("STATISTICALLY,") would
 // otherwise overflow the safe width and clip against the frame edge.
-const CHAR_ADVANCE = 0.62;
+const CHAR_ADVANCE = 0.6;
 
 type Group = { words: CaptionWord[]; start: number; end: number };
 
@@ -153,19 +171,16 @@ const CaptionGroup: React.FC<{
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
-          gap: `0 ${fontPx * 0.26}px`,
-          // Clean medium-weight sans, natural case (no all-caps, no yellow). A
-          // subtle rounded backing plate guarantees contrast on bright/busy
-          // footage so captions are readable without going loud.
-          fontFamily: '"Helvetica Neue", Inter, system-ui, Arial, sans-serif',
-          fontWeight: 700,
+          gap: `0 ${fontPx * CAPTION_BRAND.wordGapFrac}px`,
+          // No background box — a crisp black outline + shadow keep it readable
+          // on ANY background (the TikTok-creator approach). Bold Montserrat,
+          // natural case, smaller so it complements the subject.
+          fontFamily: CAPTION_BRAND.font,
+          fontWeight: CAPTION_BRAND.weight,
           fontSize: fontPx,
-          lineHeight: 1.14,
-          letterSpacing: "-0.01em",
+          lineHeight: 1.16,
+          letterSpacing: "-0.005em",
           textAlign: "center",
-          backgroundColor: "rgba(0,0,0,0.4)",
-          borderRadius: fontPx * 0.34,
-          padding: `${fontPx * 0.22}px ${fontPx * 0.42}px`,
         }}
       >
         {group.words.map((w, i) => {
@@ -174,16 +189,15 @@ const CaptionGroup: React.FC<{
             <span
               key={i}
               style={{
-                // The current word is full white, the rest only slightly dimmed
-                // (still clearly readable). accent tints the active word only if
-                // the caller passes a real color (default white = monochrome).
-                color: isActive ? accent : "#ffffff",
-                opacity: isActive ? 1 : 0.82,
-                // Stroke + shadow layered on top of the plate for crisp edges.
-                WebkitTextStroke: `${Math.max(1.5, fontPx * 0.022)}px rgba(0,0,0,0.6)`,
+                // The spoken word pops in the brand accent; the rest stay white.
+                // Weight is constant so nothing reflows as words activate. Outline
+                // + shadow give edge separation on any background, no box needed.
+                color: isActive ? accent : CAPTION_BRAND.inactiveColor,
+                opacity: isActive ? 1 : CAPTION_BRAND.inactiveOpacity,
+                WebkitTextStroke: `${Math.max(2, fontPx * CAPTION_BRAND.strokeFrac)}px #000`,
                 paintOrder: "stroke fill",
-                textShadow: "0 2px 12px rgba(0,0,0,0.6)",
-                transition: "opacity 0.06s",
+                textShadow: `0 ${fontPx * 0.03}px ${fontPx * 0.09}px rgba(0,0,0,0.55)`,
+                transition: "color 0.06s",
               }}
             >
               {w.word}

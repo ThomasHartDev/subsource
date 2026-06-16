@@ -15,9 +15,9 @@ const PUBLIC_DIR = path.join(ROOT, "public");
 const AE_PUBLIC = path.join(PUBLIC_DIR, "auto-edit");
 
 const FPS = 30;
-// Minimal captions: active word is full white, others dimmed (emphasis via
-// opacity, not a loud color). Swap to a real hex here to tint the active word.
-const ACCENT = "#FFFFFF";
+// Brand accent for the active caption word — same mint as the graphics so the
+// whole video reads as one branded system. Set to "#FFFFFF" for monochrome.
+const ACCENT = "#33E0A1";
 
 type Orientation = "vertical" | "landscape";
 const FORMATS: Record<Orientation, { width: number; height: number; maxWords: number }> = {
