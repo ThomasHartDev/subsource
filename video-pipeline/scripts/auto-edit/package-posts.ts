@@ -9,35 +9,19 @@ import fs from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { run, probeDuration } from "./ffmpeg";
-import { getPlatformSpec, type PlatformId, type PlatformSpec } from "../../src/types";
+import { getPlatformSpec, type PlatformSpec } from "../../src/types";
+import {
+  TARGETS,
+  LANE_LABELS,
+  captionFor,
+  stubCaptions,
+  type Orientation,
+  type Target,
+  type Captions,
+} from "./targets";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..", "..");
-
-type Orientation = "vertical" | "landscape";
-type CaptionStyle = "punchy" | "youtube" | "professional" | "short" | "casual";
-
-// Each publish target: which rendered file it uses, which spec governs it, the
-// caption voice it wants, and whether PR3 can auto-post it or it's manual.
-type Target = {
-  key: string;
-  label: string;
-  orientation: Orientation;
-  specId: PlatformId;
-  style: CaptionStyle;
-  autopost: "meta" | "x" | "youtube" | "manual";
-};
-
-const TARGETS: Target[] = [
-  { key: "tiktok", label: "TikTok", orientation: "vertical", specId: "tiktok-feed", style: "punchy", autopost: "manual" },
-  { key: "instagram-reels", label: "Instagram Reels", orientation: "vertical", specId: "instagram-reels", style: "punchy", autopost: "meta" },
-  { key: "youtube-shorts", label: "YouTube Shorts", orientation: "vertical", specId: "youtube-shorts", style: "punchy", autopost: "youtube" },
-  { key: "youtube", label: "YouTube", orientation: "landscape", specId: "youtube-instream", style: "youtube", autopost: "youtube" },
-  { key: "linkedin", label: "LinkedIn", orientation: "landscape", specId: "linkedin-feed-landscape", style: "professional", autopost: "manual" },
-  { key: "x", label: "X / Twitter", orientation: "landscape", specId: "x-feed", style: "short", autopost: "x" },
-  // FB feed accepts 16:9; reuse the LinkedIn landscape constraints.
-  { key: "facebook", label: "Facebook", orientation: "landscape", specId: "linkedin-feed-landscape", style: "casual", autopost: "meta" },
-];
 
 function flag(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(name);
@@ -79,14 +63,6 @@ async function transcriptText(opts: { transcript?: string; text?: string }): Pro
   return "";
 }
 
-type Captions = {
-  punchy: { caption: string; hashtags: string[] };
-  youtube: { title: string; description: string; hashtags: string[] };
-  professional: { caption: string; hashtags: string[] };
-  short: { caption: string };
-  casual: { caption: string; hashtags: string[] };
-};
-
 // Ask the claude CLI (not the API — house rule) for platform-tuned captions.
 // The voice rules mirror ~/.claude/CLAUDE.md: casual, no AI tells, no em dashes,
 // no "X, not Y" antithesis, no fake hype.
@@ -112,33 +88,6 @@ Return ONLY a JSON object, no prose, no code fences, with this exact shape:
   const jsonEnd = raw.lastIndexOf("}");
   if (jsonStart === -1 || jsonEnd === -1) throw new Error(`no JSON in claude output: ${raw.slice(0, 200)}`);
   return JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as Captions;
-}
-
-// Deterministic fallback so packaging works (and is testable) without the CLI.
-function stubCaptions(topic: string): Captions {
-  const t = topic || "my latest build";
-  return {
-    punchy: { caption: `${t} 👇`, hashtags: ["buildinpublic", "coding", "devtools", "indiehacker", "tech"] },
-    youtube: { title: t, description: `A quick look at ${t}.`, hashtags: ["coding", "devtools", "tech"] },
-    professional: { caption: `Sharing ${t}. Here's what I learned building it.`, hashtags: ["softwareengineering", "buildinpublic", "devtools"] },
-    short: { caption: `${t} 👇` },
-    casual: { caption: `Just shipped ${t}.`, hashtags: ["coding", "devtools", "tech"] },
-  };
-}
-
-function captionFor(style: CaptionStyle, c: Captions): { body: string; hashtags: string[] } {
-  switch (style) {
-    case "punchy":
-      return { body: c.punchy.caption, hashtags: c.punchy.hashtags };
-    case "youtube":
-      return { body: `${c.youtube.title}\n\n${c.youtube.description}`, hashtags: c.youtube.hashtags };
-    case "professional":
-      return { body: c.professional.caption, hashtags: c.professional.hashtags };
-    case "short":
-      return { body: c.short.caption, hashtags: [] };
-    case "casual":
-      return { body: c.casual.caption, hashtags: c.casual.hashtags };
-  }
 }
 
 // Remux a rendered file to a platform's spec. Same-dims source (the common case
@@ -222,18 +171,13 @@ async function main() {
   }
 
   // post.md — one section per platform with the file, caption, hashtags, and
-  // how it ships (auto-post lane or manual upload).
-  const autopostLabel: Record<Target["autopost"], string> = {
-    meta: "auto-post (Meta API, PR3)",
-    x: "auto-post (X API, PR3)",
-    youtube: "auto-post (YouTube API, PR3)",
-    manual: "manual upload",
-  };
+  // how it ships (auto-post lane or manual upload). Run post-delivery.ts against
+  // this folder to fire the auto-post lanes; manual lanes you upload yourself.
   let md = `# Post package: ${topic || slug}\n\nGenerated ${rows.length} platform file(s) in this folder.\n\n`;
   for (const r of rows) {
     const tags = r.cap.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ");
     md += `## ${r.target.label}\n`;
-    md += `- File: \`${r.file}\` (${getPlatformSpec(r.target.specId).aspect}, ${autopostLabel[r.target.autopost]})\n`;
+    md += `- File: \`${r.file}\` (${getPlatformSpec(r.target.specId).aspect}, ${LANE_LABELS[r.target.lane]})\n`;
     if (r.note !== "ok") md += `- ${r.note}\n`;
     md += `\n**Caption**\n\n${r.cap.body}\n\n`;
     if (tags) md += `${tags}\n\n`;
