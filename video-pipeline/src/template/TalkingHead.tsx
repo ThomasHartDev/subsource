@@ -15,17 +15,16 @@ export type CaptionWord = { word: string; start: number; end: number };
 
 // CAPTION_BRAND — the one place the subtitle look is defined, so every video
 // gets the identical, on-brand captions (the "repeatable, branded to me" spec).
-// Prestige style: Playfair Display (editorial serif), no box, crisp outline so
-// it's readable on ANY background, small enough to not cover the subject, single
-// color (no word-by-word highlight).
+// Matches the @emonthebrain reference: clean Poppins, MEDIUM weight, no box, no
+// word-by-word highlight, a soft shadow (not a heavy outline) for legibility,
+// just a thin stroke so it survives bright footage. Single, slightly-off-white
+// color (her captions are pure white; this is the "slightly different" tint).
 const CAPTION_BRAND = {
-  font: captionFontFamily, // Playfair Display (loaded in font.ts)
-  weight: 700,
-  // Outline + shadow do the legibility work instead of a background plate (and
-  // thicken Playfair's thin strokes so the serif survives over bright video).
-  strokeFrac: 0.06, // black outline as a fraction of font size
-  wordGapFrac: 0.3, // space between words as a fraction of font size
-  color: "#ffffff",
+  font: captionFontFamily, // Poppins (loaded in font.ts)
+  weight: 600,
+  strokeFrac: 0.03, // thin outline (legibility insurance on bright frames)
+  wordGapFrac: 0.28, // space between words as a fraction of font size
+  color: "#F2EFE6", // warm off-white — slightly different from her pure white
 };
 
 // "vertical" = 9:16 (TikTok/Reels/Shorts): captions sit high in the Hormozi zone

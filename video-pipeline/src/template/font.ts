@@ -6,18 +6,18 @@
  * Only latin subset at weights 600/700/800 to keep cold-render time low.
  */
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
-import { loadFont as loadPlayfair } from "@remotion/google-fonts/PlayfairDisplay";
+import { loadFont as loadPoppins } from "@remotion/google-fonts/Poppins";
 
 const { fontFamily } = loadInter("normal", {
   weights: ["600", "700", "800"],
   subsets: ["latin"],
 });
 
-// Playfair Display — high-contrast editorial serif, the branded subtitle face
-// (prestige look). The outline in CAPTION_BRAND thickens its thin strokes so it
-// stays legible over video. See CAPTION_BRAND in TalkingHead.tsx.
-const { fontFamily: captionFontFamily } = loadPlayfair("normal", {
-  weights: ["600", "700"],
+// Poppins — clean geometric-humanist sans, the creator-caption standard (matches
+// the @emonthebrain reference). Medium weight + a soft shadow, NOT a heavy black
+// outline, is what reads polished instead of childish. See CAPTION_BRAND.
+const { fontFamily: captionFontFamily } = loadPoppins("normal", {
+  weights: ["500", "600"],
   subsets: ["latin"],
 });
 
