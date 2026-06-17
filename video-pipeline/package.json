@@ -1,0 +1,51 @@
+{
+  "name": "video-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node --import tsx scripts/render.ts",
+    "render:cheap": "pnpm render cheap",
+    "render:premium": "pnpm render premium",
+    "render:all": "pnpm render cheap all",
+    "render-veo": "node --import tsx scripts/render-veo.ts",
+    "package-posts": "node --import tsx scripts/auto-edit/package-posts.ts",
+    "post-delivery": "node --import tsx scripts/auto-edit/post-delivery.ts",
+    "studio": "remotion studio src/index.tsx",
+    "preview": "remotion preview src/index.tsx",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test scripts/auto-edit/post-delivery.test.ts"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.10.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@react-three/postprocessing": "^3.0.4",
+    "@remotion/bundler": "^4.0.236",
+    "@remotion/cli": "^4.0.236",
+    "@remotion/google-fonts": "4.0.236",
+    "@remotion/media-parser": "4.0.236",
+    "@remotion/renderer": "^4.0.236",
+    "@remotion/three": "4.0.452",
+    "@runwayml/sdk": "^3.21.1",
+    "@types/pg": "^8.20.0",
+    "msedge-tts": "^2.0.5",
+    "pg": "^8.21.0",
+    "postprocessing": "^6.39.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.236",
+    "three": "^0.170.0",
+    "troika-three-text": "^0.52.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.170.0",
+    "playwright": "^1.60.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

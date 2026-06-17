@@ -1,0 +1,255 @@
+import path from "node:path";
+import fs from "node:fs/promises";
+import os from "node:os";
+import { fileURLToPath } from "node:url";
+import { bundle } from "@remotion/bundler";
+import { renderMedia, selectComposition } from "@remotion/renderer";
+import { computeEditList, DEFAULT_OPTIONS, type Word } from "./editlist";
+import { run, probeDuration, buildTrimFilter, buildMusicDuckFilter } from "./ffmpeg";
+import { analyzeOverlays, type Cue } from "./overlays";
+import { searchClip } from "../../src/services/pexels";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, "..", "..");
+const PUBLIC_DIR = path.join(ROOT, "public");
+const AE_PUBLIC = path.join(PUBLIC_DIR, "auto-edit");
+
+const FPS = 30;
+
+type Orientation = "vertical" | "landscape";
+const FORMATS: Record<Orientation, { width: number; height: number; maxWords: number }> = {
+  // Mobile: TikTok / Reels / Shorts. Center-crop the talking head to 9:16.
+  vertical: { width: 1080, height: 1920, maxWords: 3 },
+  // Desktop: YouTube / LinkedIn / X. Keep the full 16:9 frame, fit more per line.
+  landscape: { width: 1920, height: 1080, maxWords: 5 },
+};
+
+function parseArgs(argv: string[]) {
+  const input = argv[2];
+  const noFiller = argv.includes("--no-filler");
+  const flag = (name: string) => {
+    const i = argv.indexOf(name);
+    return i > -1 ? argv[i + 1] : undefined;
+  };
+  // `--music default` uses the in-repo public/music.mp3 bed.
+  let music = flag("--music");
+  if (music === "default") music = "music.mp3";
+  // `--formats vertical,landscape` (default both).
+  const formatsArg = flag("--formats");
+  const orientations = (formatsArg ? formatsArg.split(",") : ["vertical", "landscape"])
+    .map((s) => s.trim())
+    .filter((s): s is Orientation => s === "vertical" || s === "landscape");
+  const slug = flag("--slug") ?? "talking-head";
+  // Head-aware reframe (default on): follow the face when changing aspect, so
+  // the speaker doesn't have to center themselves. --no-reframe = static crop.
+  const reframe = !argv.includes("--no-reframe");
+  // Content-driven graphics (default on): analyze the dialogue and edit in
+  // stat/keyword/diagram overlays with SFX. --no-overlays disables.
+  const overlays = !argv.includes("--no-overlays");
+  const topic = flag("--topic") ?? "";
+  return { input, noFiller, music, orientations, slug, reframe, overlays, topic };
+}
+
+async function main() {
+  const { input, noFiller, music, orientations, slug, reframe, overlays, topic } = parseArgs(process.argv);
+  if (!input || orientations.length === 0) {
+    console.error(
+      "usage: auto-edit.ts <input-video> [--no-filler] [--music <public-rel|default>] " +
+        "[--formats vertical,landscape] [--slug name]",
+    );
+    process.exit(2);
+  }
+
+  const abs = path.resolve(input);
+  await fs.access(abs);
+  await fs.mkdir(AE_PUBLIC, { recursive: true });
+  const ts = Date.now();
+  const work = path.join(ROOT, "out", `auto-edit-${ts}`);
+  await fs.mkdir(work, { recursive: true });
+
+  // 1. Transcribe (faster-whisper, word timestamps). Format-agnostic.
+  const wordsPath = path.join(work, "words.json");
+  console.log("[auto-edit] transcribing...");
+  await run("python3", [path.join(__dirname, "transcribe.py"), abs, wordsPath], "transcribe");
+  const { words, duration } = JSON.parse(await fs.readFile(wordsPath, "utf8")) as {
+    words: Word[];
+    duration: number;
+  };
+  const mediaDuration = duration || (await probeDuration(abs));
+
+  // 2. Edit list (cut silence + filler, remap captions). Format-agnostic.
+  const edit = computeEditList(words, mediaDuration, { ...DEFAULT_OPTIONS, removeFiller: !noFiller });
+  await fs.writeFile(path.join(work, "editlist.json"), JSON.stringify(edit, null, 2));
+  console.log(
+    `[auto-edit] ${words.length} words -> ${edit.segments.length} segments, ` +
+      `${edit.removedFillerCount} filler removed, ${mediaDuration.toFixed(1)}s -> ${edit.trimmedDuration.toFixed(1)}s`,
+  );
+
+  // 3. Assemble ONE cleaned master (trimmed video + voice cleaned to -14 LUFS).
+  //    Both orientations render from this same source, so the cut + audio work
+  //    happens once. Per-run filename avoids clobbering concurrent runs.
+  const master = path.join(AE_PUBLIC, `master-${ts}.mp4`);
+  console.log("[auto-edit] assembling cleaned master...");
+  await run(
+    "ffmpeg",
+    [
+      "-y", "-i", abs,
+      "-filter_complex", buildTrimFilter(edit.segments),
+      "-map", "[vc]", "-map", "[aout]",
+      "-r", String(FPS),
+      "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+      "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+      master,
+    ],
+    "ffmpeg-assemble",
+  );
+
+  // 3a. Content-driven overlays: analyze the trimmed transcript and decide where
+  //     a stat/keyword/diagram graphic helps. Cues are in the trimmed timeline
+  //     (edit.captions), so they line up with both the video and the captions.
+  let overlayCues: Cue[] = [];
+  if (overlays) {
+    console.log("[auto-edit] analyzing dialogue for graphics...");
+    try {
+      overlayCues = await analyzeOverlays(edit.captions, edit.trimmedDuration, topic);
+      console.log(`[auto-edit] ${overlayCues.length} overlay cue(s): ${overlayCues.map((c) => c.kind).join(", ") || "none"}`);
+    } catch (e) {
+      console.warn(`[auto-edit] overlay analysis failed (${(e as Error).message}); continuing without`);
+    }
+
+    // Fetch an example clip for each b-roll cue (before bundling, so Remotion's
+    // public/ snapshot includes them). A failed fetch drops just that cue.
+    const broll = overlayCues.filter((c) => c.kind === "broll" && c.query);
+    for (let i = 0; i < broll.length; i++) {
+      const cue = broll[i]!;
+      const file = path.join(AE_PUBLIC, `broll-${i}-${ts}.mp4`);
+      try {
+        const r = await searchClip(cue.query!, file, "landscape");
+        if (r) {
+          cue.src = `auto-edit/${path.basename(file)}`;
+          console.log(`[auto-edit] b-roll "${cue.query}" -> ${path.basename(file)}`);
+        } else {
+          console.warn(`[auto-edit] no b-roll found for "${cue.query}"; dropping cue`);
+        }
+      } catch (e) {
+        console.warn(`[auto-edit] b-roll fetch failed for "${cue.query}" (${(e as Error).message}); dropping cue`);
+      }
+    }
+    // Drop b-roll cues that never got a clip so the renderer doesn't 404.
+    overlayCues = overlayCues.filter((c) => c.kind !== "broll" || c.src);
+  }
+
+  // 3b. Optional music bed: sidechain-duck it under the voice and remaster.
+  //     Baked into the master's audio so every render carries the same mix.
+  let videoSrcAbs = master;
+  if (music) {
+    const musicAbs = path.join(PUBLIC_DIR, music);
+    await fs.access(musicAbs).catch(() => {
+      throw new Error(`music bed not found: ${musicAbs} (path is relative to public/)`);
+    });
+    const mixed = path.join(AE_PUBLIC, `master-${ts}-music.mp4`);
+    console.log(`[auto-edit] ducking music bed (${music}) under voice...`);
+    await run(
+      "ffmpeg",
+      [
+        "-y", "-i", master, "-i", musicAbs,
+        "-filter_complex", buildMusicDuckFilter(),
+        "-map", "0:v", "-map", "[aout]",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+        "-shortest", mixed,
+      ],
+      "ffmpeg-music",
+    );
+    videoSrcAbs = mixed;
+  }
+
+  const videoSrcRel = `auto-edit/${path.basename(videoSrcAbs)}`;
+  const masterDur = await probeDuration(videoSrcAbs);
+  const durationInFrames = Math.max(1, Math.round(masterDur * FPS));
+
+  // 3c. Head-aware reframe per orientation, BEFORE bundling. Remotion's bundle
+  //     snapshots public/ at bundle time, so every video the renderer reads
+  //     (incl. these reframed files) must already exist on disk first. Face-
+  //     track the master once, then reframe each orientation to target dims so
+  //     the speaker stays framed regardless of where they are in the shot.
+  const orientSrcRel: Record<Orientation, string> = { vertical: videoSrcRel, landscape: videoSrcRel };
+  if (reframe) {
+    const trackPath = path.join(work, "facetrack.json");
+    console.log("[auto-edit] face-tracking for head-aware reframe...");
+    await run("python3", [path.join(__dirname, "autoframe.py"), videoSrcAbs, trackPath], "autoframe");
+
+    // Cut times in the trimmed timeline (start of each kept segment) anchor the
+    // zoom beats: a push-in landing on a cut hides the edit.
+    const cutTimes: number[] = [];
+    let acc = 0;
+    for (const s of edit.segments) {
+      cutTimes.push(+acc.toFixed(3));
+      acc += s.end - s.start;
+    }
+
+    for (const orientation of orientations) {
+      const fmt = FORMATS[orientation];
+      const reframed = path.join(AE_PUBLIC, `reframed-${orientation}-${ts}.mp4`);
+      console.log(`[auto-edit] reframing ${orientation} (head-tracked + zoom ${fmt.width}x${fmt.height})...`);
+      await run(
+        "python3",
+        [
+          path.join(__dirname, "reframe.py"),
+          "--master", videoSrcAbs,
+          "--track", trackPath,
+          "--tw", String(fmt.width),
+          "--th", String(fmt.height),
+          "--cuts", cutTimes.join(","),
+          "--out", reframed,
+        ],
+        `reframe-${orientation}`,
+      );
+      orientSrcRel[orientation] = `auto-edit/${path.basename(reframed)}`;
+    }
+  }
+
+  // 4. Render captions over each (already-reframed) source. The video is already
+  //    at target dims so the OffthreadVideo objectFit cover is a no-op.
+  console.log(`[auto-edit] bundling renderer (${durationInFrames} frames)...`);
+  const serveUrl = await bundle({ entryPoint: path.join(ROOT, "src/index.tsx"), publicDir: PUBLIC_DIR });
+
+  const outputs: string[] = [];
+  for (const orientation of orientations) {
+    const fmt = FORMATS[orientation];
+    const inputProps = {
+      videoSrc: orientSrcRel[orientation],
+      captions: edit.captions,
+      maxWordsPerGroup: fmt.maxWords,
+      orientation,
+      overlays: overlayCues,
+    };
+    const composition = await selectComposition({
+      serveUrl,
+      id: "TalkingHead",
+      inputProps: inputProps as Record<string, unknown>,
+    });
+    const outFile = path.join(ROOT, "out", `${slug}-${orientation}-${ts}.mp4`);
+    console.log(`[auto-edit] rendering ${orientation} (${fmt.width}x${fmt.height})...`);
+    await renderMedia({
+      composition: { ...composition, width: fmt.width, height: fmt.height, fps: FPS, durationInFrames },
+      serveUrl,
+      codec: "h264",
+      outputLocation: outFile,
+      inputProps: inputProps as Record<string, unknown>,
+      chromiumOptions: { gl: "swangle" },
+      concurrency: Math.min(4, Math.max(2, os.cpus().length - 1)),
+      offthreadVideoCacheSizeInBytes: 512 * 1024 * 1024,
+      onProgress: ({ progress }) =>
+        process.stdout.write(`\r[auto-edit] ${orientation} ${(progress * 100).toFixed(0)}%   `),
+    });
+    outputs.push(outFile);
+    console.log(`\n[auto-edit] ${orientation} -> ${outFile}`);
+  }
+
+  console.log(`[auto-edit] done. ${outputs.length} format(s):\n${outputs.map((o) => "  " + o).join("\n")}`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

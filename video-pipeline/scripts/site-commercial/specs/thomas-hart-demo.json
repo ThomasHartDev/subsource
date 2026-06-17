@@ -1,0 +1,85 @@
+{
+  "name": "thomas-hart-demo",
+  "format": "9:16",
+  "fps": 60,
+  "brand": {
+    "name": "Thomas Hart",
+    "accent": "#8E8EF7",
+    "bg": "#0A0A0C",
+    "fg": "#F2F2F4"
+  },
+  "audioSrc": "music.mp3",
+  "audioVolume": 0.6,
+  "beats": [
+    {
+      "kind": "particle-logo",
+      "durationSec": 3.2,
+      "transitionIn": "cut",
+      "logoSrc": "site-commercial/brand/hartecho-mark.png",
+      "title": "Thomas Hart",
+      "subtitle": "Software engineer"
+    },
+    {
+      "kind": "site-shot",
+      "durationSec": 3.4,
+      "transitionIn": "zoom-punch",
+      "src": "site-commercial/thomas-hart/mobile/hero.png",
+      "imageW": 1170,
+      "imageH": 2532,
+      "from": { "cx": 585, "cy": 1000, "zoom": 1.0 },
+      "to": { "cx": 585, "cy": 1480, "zoom": 1.28 }
+    },
+    {
+      "kind": "scroll-through",
+      "durationSec": 3.0,
+      "transitionIn": "cut",
+      "src": "site-commercial/thomas-hart/mobile/fullpage.png",
+      "imageW": 1170,
+      "imageH": 36081,
+      "fromY": 0,
+      "toY": 5900,
+      "zoom": 1.0
+    },
+    {
+      "kind": "site-shot",
+      "durationSec": 3.4,
+      "transitionIn": "cut",
+      "src": "site-commercial/thomas-hart/mobile/fullpage.png",
+      "imageW": 1170,
+      "imageH": 36081,
+      "from": { "cx": 585, "cy": 6900, "zoom": 1.05 },
+      "to": { "cx": 585, "cy": 6750, "zoom": 1.28 },
+      "overlay": {
+        "headline": "Five years shipping to production",
+        "position": "lower",
+        "align": "left",
+        "enterSec": 0.4
+      }
+    },
+    {
+      "kind": "site-shot",
+      "durationSec": 3.2,
+      "transitionIn": "whip",
+      "src": "site-commercial/thomas-hart/mobile/section-3.png",
+      "imageW": 1170,
+      "imageH": 2532,
+      "from": { "cx": 585, "cy": 1266, "zoom": 1.0 },
+      "to": { "cx": 585, "cy": 1180, "zoom": 1.16 }
+    },
+    {
+      "kind": "text-card",
+      "durationSec": 2.6,
+      "transitionIn": "fade",
+      "headline": "Open to new roles",
+      "sub": "Software engineer in Lehi, Utah."
+    },
+    {
+      "kind": "end-card",
+      "durationSec": 3.4,
+      "transitionIn": "fade",
+      "logoSrc": "site-commercial/brand/hartecho-mark.png",
+      "domain": "thomas-hart.com",
+      "cta": "Get in touch"
+    }
+  ]
+}

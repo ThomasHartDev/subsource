@@ -1,0 +1,92 @@
+{
+  "name": "subsecond-demo",
+  "format": "9:16",
+  "fps": 60,
+  "brand": {
+    "name": "Subsecond Studio",
+    "accent": "#FFD400",
+    "bg": "#0B0C0E",
+    "fg": "#EDEEF0"
+  },
+  "audioSrc": "music.mp3",
+  "audioVolume": 0.6,
+  "beats": [
+    {
+      "kind": "particle-logo",
+      "durationSec": 3.2,
+      "transitionIn": "cut",
+      "logoSrc": "site-commercial/brand/subsecond-mark.png",
+      "title": "Subsecond Studio",
+      "subtitle": "Web design and build"
+    },
+    {
+      "kind": "site-shot",
+      "durationSec": 3.2,
+      "transitionIn": "zoom-punch",
+      "src": "site-commercial/subsecond/mobile/hero.png",
+      "imageW": 1170,
+      "imageH": 2532,
+      "from": { "cx": 585, "cy": 1040, "zoom": 1.0 },
+      "to": { "cx": 585, "cy": 970, "zoom": 1.26 }
+    },
+    {
+      "kind": "scroll-through",
+      "durationSec": 3.0,
+      "transitionIn": "cut",
+      "src": "site-commercial/subsecond/mobile/fullpage.png",
+      "imageW": 1170,
+      "imageH": 24456,
+      "fromY": 0,
+      "toY": 7020,
+      "zoom": 1.0
+    },
+    {
+      "kind": "site-shot",
+      "durationSec": 3.4,
+      "transitionIn": "cut",
+      "src": "site-commercial/subsecond/mobile/section-1.png",
+      "imageW": 1170,
+      "imageH": 2532,
+      "from": { "cx": 585, "cy": 1350, "zoom": 1.18 },
+      "to": { "cx": 585, "cy": 1150, "zoom": 1.08 },
+      "overlay": {
+        "headline": "Watch it come together",
+        "sub": "Briefs, previews, and progress in your own client portal.",
+        "position": "lower",
+        "align": "left",
+        "enterSec": 0.35
+      }
+    },
+    {
+      "kind": "site-shot",
+      "durationSec": 3.4,
+      "transitionIn": "whip",
+      "src": "site-commercial/subsecond/mobile/section-5.png",
+      "imageW": 1170,
+      "imageH": 2532,
+      "from": { "cx": 585, "cy": 1266, "zoom": 1.04 },
+      "to": { "cx": 585, "cy": 1120, "zoom": 1.18 },
+      "overlay": {
+        "headline": "Hear it from our clients",
+        "position": "lower",
+        "align": "left",
+        "enterSec": 0.4
+      }
+    },
+    {
+      "kind": "text-card",
+      "durationSec": 2.6,
+      "transitionIn": "fade",
+      "headline": "From idea to launch in weeks",
+      "sub": "A clear plan and a fixed price from day one."
+    },
+    {
+      "kind": "end-card",
+      "durationSec": 3.4,
+      "transitionIn": "fade",
+      "logoSrc": "site-commercial/brand/subsecond-mark.png",
+      "domain": "subsecondstudio.com",
+      "cta": "Start your build"
+    }
+  ]
+}

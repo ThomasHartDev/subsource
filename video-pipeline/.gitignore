@@ -1,0 +1,11 @@
+node_modules
+out/
+.env
+.env.local
+*.log
+.profile-cache/
+
+# heavy media (generated frames, rendered output, reference clips) — regenerate, never commit
+public/
+refs/
+voice-clips/
