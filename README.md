@@ -1,91 +1,54 @@
-# Subsource Review Platform
+# Subsource
 
-**Live demo:** https://subsource.vercel.app/
+A review platform for commercial contractors and the businesses around them. Users find contractors, subcontractors, suppliers, and agencies, then rate and review them. Business owners can claim their listing and respond.
 
 ## Overview
 
-Subsource is a centralized review platform where users can discover, rate, and review commercial contractors and related businesses. It leverages Nuxt 3’s server‑side rendering for top‑tier performance and SEO, structured JSON‑LD metadata, secure Google login for frictionless authentication, and a built‑in blog for company news and insights. Administrators have access to dashboards for creating and editing blog posts, managing user profiles, moderating reviews, and updating business listings.
+Subsource is a Nuxt 3 app with server-side rendering. The catalog is split into four listing types, each with its own search page and detail page: contractors, subcontractors, suppliers, and agencies. Visitors leave star ratings and written reviews, and the detail pages chart the score history. Owners submit a claim on a listing to take it over. There is also a blog for company news and an admin area for moderating everything.
 
-## Tech Stack
+## Features
 
-- **Frontend:**  
-    - Nuxt 3 (Vue 3 w/ SSR)  
-    - Pinia (state management)  
-    - @nuxt/image (optimized images)  
-    - @nuxtjs/google‑fonts  
-- **Authentication & Security:**  
-    - nuxt‑vue3‑google‑signin (Google OAuth)  
-    - google‑auth‑library  
-    - jsonwebtoken & bcrypt (JWT‑based sessions)  
-    - vue‑recaptcha‑v3 (reCAPTCHA v3 anti‑spam)  
-- **Backend & API:**  
-    - Node.js & Nuxt Server Routes  
-    - Mongoose & MongoDB Atlas  
-- **DevOps & Deployment:**  
-    - Vercel (CI/CD pipeline)  
-    - GitHub (version control)  
+- Four listing categories: contractors, subcontractors, suppliers, agencies, each with a dedicated search page
+- Star ratings and written reviews, with review charts on each listing
+- Add a business and claim an existing listing, with a claims queue for review
+- Google sign-in plus JWT sessions, passwords hashed with bcrypt
+- reCAPTCHA v3 on public forms to cut spam
+- Blog with markdown posts and per-post SEO metadata and JSON-LD
+- Admin pages to edit listings, users, reviews, blog posts, and claims
+- SSR for fast first paint and search indexing
 
-## Key Features
+## Stack
 
-- **Server‑side rendering** for fast load times and SEO  
-- **Modular, auto‑imported components**  
-- **JSON‑LD structured metadata** for rich search snippets  
-- **WCAG‑compliant responsive design**  
-- **Google OAuth login**  
-- **JWT‑secured API routes**  
-- **User reviews & ratings** with interactive charts  
-- **reCAPTCHA v3** to block spam  
-- **Blog** section with markdown‑based posts and SEO metadata  
-- **Admin dashboards** to:  
-    - Create, edit, and delete blog posts  
-    - Manage user profiles and permissions  
-    - Moderate and respond to reviews  
-    - Update business information and listings  
-- **Auto‑deploy** on push to `main`  
+- Nuxt 3 (Vue 3, SSR), Pinia for state
+- Nuxt server routes for the API
+- MongoDB Atlas via Mongoose
+- Google OAuth (`nuxt-vue3-google-signin`, `google-auth-library`), `jsonwebtoken`, `bcrypt`
+- `vue-recaptcha-v3`, `@nuxt/image`, Chart.js
+- Deployed on Vercel
 
-## Getting Started
+## Getting started
 
-### Prerequisites
+```bash
+npm install
+npm run dev        # http://localhost:3000
+```
 
-- Node.js v16 or higher  
-- npm, yarn, or pnpm  
-- MongoDB Atlas account  
-- Google OAuth credentials  
-- reCAPTCHA v3 site key  
+Create a `.env` in the project root:
 
-### Installation & Running Locally
+```
+DB_URI=your_mongodb_connection_string
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+JWT_SECRET=your_jwt_secret
+RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
+```
 
-    git clone https://github.com/hartecho/subsource.git
-    cd subsource
-    npm install
+Build and run production:
 
-Create a `.env` file in the project root with:
+```bash
+npm run build
+npm run start
+```
 
-    DB_URI=your_mongodb_connection_string
-    GOOGLE_CLIENT_ID=your_google_oauth_client_id
-    GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
-    JWT_SECRET=your_jwt_secret
-    RECAPTCHA_SITE_KEY=your_recaptcha_site_key
-    RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
-
-Start the development server:
-
-    npm run dev
-
-### Build & Production
-
-    npm run build
-    npm run start
-
-## Deployment
-
-This repository is linked to Vercel. Any push to `main` triggers the CI/CD pipeline and publishes the latest version at https://subsource.vercel.app/.
-
-## License
-
-© 2025 HARTECHO LLC. All rights reserved.
-
-## Contact
-
-Thomas Hart  
-Email: thomas@hartecho.com  
+Built by HARTECHO.
